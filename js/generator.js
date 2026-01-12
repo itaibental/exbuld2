@@ -35,7 +35,8 @@ const Generator = {
             } else {
                 qHtml = partQuestions.map((q, qIdx) => {
                     const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
-                    let vid = embedSrc ? `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0"></iframe></div>` : '';
+                    // Updated Video Wrapper HTML
+                    let vid = embedSrc ? `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>` : '';
                     const imgSrc = Utils.getImageSrc(q.imageUrl);
                     let img = imgSrc ? `<div class="image-wrapper"><img src="${imgSrc}" alt="Question Image"></div>` : '';
 
@@ -104,7 +105,6 @@ const Generator = {
 
         return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>מבחן - ${studentName}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap"><style>
         :root{--primary:#2c3e50;--accent:#3498db;--success:#27ae60;--danger:#e74c3c;}
-        /* Increased font size to 18px and line-height to 1.5 */
         body{font-family:'Rubik',sans-serif;background:#f4f6f8;margin:0;padding:2%;color:#2c3e50;font-size:18px;line-height:1.5;} 
         .container{max-width:800px;margin:0 auto;background:white;padding:5%;border-radius:1em;box-shadow:0 1vh 3vh rgba(0,0,0,0.05);}
         textarea{width:100%;height:20vh;padding:2vh;border:1px solid #ccc;border-radius:0.8em;font-family:inherit;font-size:1rem;}
@@ -117,8 +117,9 @@ const Generator = {
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
         
         /* Media Styles - Full Width & Responsive */
-        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; } /* Added Shield CSS */
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
 
@@ -139,8 +140,8 @@ const Generator = {
         /* Modals */
         #startScreen,#timesUpModal,#securityModal,#successModal{position:fixed;top:0;left:0;width:100%;height:100%;background:#2c3e50;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;}#timesUpModal,#securityModal,#successModal{display:none;}
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
-        #securityModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; } /* Increased size for lock screen title */
-        #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; } /* Increased size for times up title */
+        #securityModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; } 
+        #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; } 
         </style></head><body>
         
         <div id="highlighterTool"><div class="drag-handle" id="hlDragHandle">:::</div><div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div><div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div><div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div><div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div><div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div></div>
@@ -185,14 +186,12 @@ const Generator = {
         let totalTime=${duration}*60,timerInterval,examStarted=false;
         function simpleHash(s){let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return h.toString();}
         
-        // --- Init Logic to Handle Reloads (Teacher opening submitted file) ---
         window.onload = function() {
             if(document.body.dataset.status === 'submitted') {
                 document.getElementById('startScreen').style.display='none';
                 document.getElementById('mainContainer').style.filter='none';
                 document.getElementById('timerBadge').style.display='none';
                 document.getElementById('successModal').style.display='flex';
-                // Lock Inputs
                 document.querySelectorAll('input,textarea').forEach(e=>{
                     if(!e.classList.contains('grade-input') && !e.classList.contains('teacher-comment') && e.id !== 'teacherCodeInput') {
                         e.setAttribute('readonly','true');
@@ -217,7 +216,6 @@ const Generator = {
         function updateTimer(){let m=Math.floor(totalTime/60),s=totalTime%60;document.getElementById('timerText').innerText=(m<10?'0'+m:m)+':'+(s<10?'0'+s:s);}
         function showPart(id){document.querySelectorAll('.exam-section').forEach(e=>e.classList.remove('active'));document.getElementById('part-'+id).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');}
         
-        // פונקציית חישוב ציון אוטומטי
         function calcTotal(){
             let t=0;
             document.querySelectorAll('.grade-input').forEach(i=>{
@@ -227,7 +225,6 @@ const Generator = {
             if(display) display.innerText = t;
         }
         
-        // --- Highlighter Logic ---
         let markerColor = null;
         function setMarker(color, btn) {
             markerColor = color;
@@ -242,19 +239,69 @@ const Generator = {
             }
         }
         
-        // Fixed: Use document.execCommand for robust highlighting across boundaries
+        // --- Improved Recursive Highlighter ---
         document.addEventListener('mouseup', () => {
             if (!markerColor) return;
             const sel = window.getSelection();
             if (sel.rangeCount > 0 && !sel.isCollapsed) {
-                // Prevent highlighting inputs or tool
-                const anchorNode = sel.anchorNode;
-                if(anchorNode && (anchorNode.nodeName === 'INPUT' || anchorNode.nodeName === 'TEXTAREA' || (anchorNode.parentElement && anchorNode.parentElement.closest('#highlighterTool')))) return;
+                const range = sel.getRangeAt(0);
                 
-                document.designMode = "on";
-                document.execCommand("styleWithCSS", false, true);
-                document.execCommand("HiliteColor", false, markerColor);
-                document.designMode = "off";
+                // Block checking - ensure we don't highlight the tools or inputs
+                const common = range.commonAncestorContainer;
+                if(common.nodeType === 1 && (common.closest('#highlighterTool') || common.tagName === 'TEXTAREA' || common.tagName === 'INPUT')) return;
+                if(common.nodeType === 3 && (common.parentNode.closest('#highlighterTool') || common.parentNode.tagName === 'TEXTAREA')) return;
+
+                // Recursive highlighting to handle cross-element selection
+                function highlightNode(node, range) {
+                    // Skip if node is not intersected by range
+                    if (!sel.containsNode(node, true)) return;
+
+                    if (node.nodeType === 3) { // Text Node
+                        // Determine the part of the text node that is selected
+                        let start = 0;
+                        let end = node.length;
+                        
+                        if (node === range.startContainer) start = range.startOffset;
+                        if (node === range.endContainer) end = range.endOffset;
+                        
+                        if (start < end) {
+                            const span = document.createElement("span");
+                            span.style.backgroundColor = markerColor;
+                            span.className = "highlighted";
+                            
+                            const mid = node.splitText(start);
+                            mid.splitText(end - start);
+                            const clone = mid.cloneNode(true);
+                            span.appendChild(clone);
+                            mid.parentNode.replaceChild(span, mid);
+                        }
+                    } else if (node.nodeType === 1) { // Element Node
+                        // Recurse children
+                        for (let i = 0; i < node.childNodes.length; i++) {
+                            highlightNode(node.childNodes[i], range);
+                        }
+                    }
+                }
+                
+                // Safe way: Extract common ancestor and traverse
+                // Simple implementation for exam context:
+                if (range.commonAncestorContainer.nodeType === 3) {
+                    // Single text node
+                    const span = document.createElement("span");
+                    span.style.backgroundColor = markerColor;
+                    range.surroundContents(span);
+                } else {
+                    // Cross-element: use safer recursive approach on the common container
+                    // Note: 'containsNode' is part of Selection, not Range.
+                    // We need to iterate nodes in range.
+                    // Simplified: Use execCommand if possible, fallback to nothing to avoid breaking DOM
+                    document.designMode = "on";
+                    if(document.queryCommandEnabled("hiliteColor")) {
+                        document.execCommand("styleWithCSS", false, true);
+                        document.execCommand("hiliteColor", false, markerColor);
+                    }
+                    document.designMode = "off";
+                }
                 sel.removeAllRanges();
             }
         });
@@ -280,11 +327,9 @@ const Generator = {
             document.body.dataset.status='submitted';
             if(document.fullscreenElement) document.exitFullscreen();
             clearInterval(timerInterval); document.getElementById('timerBadge').style.display='none';
-            // Save values to attributes for export
             document.querySelectorAll('input,textarea').forEach(e=>{e.setAttribute('value',e.value); if(!e.classList.contains('grade-input')&&!e.classList.contains('teacher-comment')) { e.setAttribute('readonly','true'); e.disabled=true; } });
             document.querySelectorAll('textarea').forEach(t=>t.innerHTML=t.value);
             
-            // Download "Solved" HTML
             const html="<!DOCTYPE html>"+document.documentElement.outerHTML;
             const b=new Blob([html],{type:'text/html'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download="פתור-"+(document.getElementById('studentNameField').value||'תלמיד')+".html"; a.click();
             
@@ -295,7 +340,6 @@ const Generator = {
             if("${driveLink}"){acts.innerHTML+='<a href="${driveLink}" target="_blank" style="display:block;margin:10px;padding:10px;background:#f1c40f;color:black;text-decoration:none;">העלה לדרייב</a>';}
         }
 
-        // --- Teacher Mode ---
         function enableGradingFromModal() {
              if(simpleHash(prompt('הכנס קוד מורה:'))==="${unlockCodeHash}") {
                  document.getElementById('successModal').style.display='none';
@@ -303,7 +347,7 @@ const Generator = {
              } else { alert('קוד שגוי'); }
         }
 
-        function enableGrading() { // Legacy call
+        function enableGrading() { 
              if(simpleHash(prompt('Code?'))==="${unlockCodeHash}") { enableGradingUI(); }
         }
 
@@ -314,8 +358,6 @@ const Generator = {
             document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
             document.querySelector('.student-submit-area').style.display='none';
             document.body.dataset.status = 'grading';
-            
-            // Show all sections
             document.querySelectorAll('.exam-section').forEach(e=>e.style.display='block');
             document.querySelector('.tabs').style.display='none';
 
@@ -333,12 +375,10 @@ const Generator = {
             a.download="בדוק-"+document.getElementById('studentNameField').value+".html"; a.click();
         }
 
-        // --- Export to DOCX ---
         function exportToDoc() {
             const studentName = document.getElementById('studentNameField').value || 'תלמיד';
             const finalScore = document.getElementById('teacherCalculatedScore').innerText || '0';
             
-            // Header
             let content = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
             content += '<head><meta charset="utf-8"><title>מבחן בדוק</title>';
             content += '<style>body{font-family: Arial, sans-serif; direction: rtl;} table{width:100%; border-collapse: collapse;} td, th{border: 1px solid #999; padding: 10px;} .q-box{border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;} .teacher-feedback{background: #f0f8ff; padding: 5px; margin-top: 5px; border: 1px solid #3498db;}</style></head><body>';
@@ -347,21 +387,15 @@ const Generator = {
             content += '<h2>שם התלמיד: ' + studentName + '</h2>';
             content += '<h3>ציון סופי: <span style="color:red">' + finalScore + '</span></h3><hr>';
 
-            // Collect Content
             const blocks = document.querySelectorAll('.q-block, .sub-question-block');
             blocks.forEach((block, idx) => {
-                // Determine if it's a main question or sub question
                 const isSub = block.classList.contains('sub-question-block');
-                
-                // Get Text
                 const textDiv = block.querySelector('.q-content') || block.querySelector('.sub-q-text');
                 const text = textDiv ? textDiv.innerText : 'שאלה ' + (idx+1);
                 
-                // Get Answer
                 const ansArea = block.querySelector('.student-ans');
                 const answer = ansArea ? ansArea.value : '(אין תשובה)';
                 
-                // Get Grade & Comment
                 const gradeInp = block.querySelector('.grade-input');
                 const grade = gradeInp ? gradeInp.value : '0';
                 const maxPoints = block.dataset.points || block.querySelector('.grade-max')?.innerText.replace(/\D/g,'') || '';
@@ -384,12 +418,11 @@ const Generator = {
 
             content += '</body></html>';
 
-            // Download as Doc
             const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'בדוק-' + studentName + '.doc'; // .doc opens correctly in Word with HTML content
+            link.download = 'בדוק-' + studentName + '.doc'; 
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
