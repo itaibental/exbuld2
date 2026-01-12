@@ -87,10 +87,16 @@ const UI = {
 
     renderPreview: function() {
         const container = this.elements.previewQuestionsContainer;
-        const filtered = ExamState.questions.filter(q => q.part === ExamState.currentTab);
+        const currentPartId = ExamState.currentTab;
+        const filtered = ExamState.questions.filter(q => q.part === currentPartId);
         
+        // בניית ה-HTML להנחיות הפרק
+        const partInstructions = ExamState.instructions.parts[currentPartId] || '';
+        const instructionsHTML = partInstructions ? `<div class="preview-part-instructions">${partInstructions.replace(/\n/g, '<br>')}</div>` : '';
+
         if (filtered.length === 0) {
             container.innerHTML = `
+            ${instructionsHTML}
             <div style="text-align: center; color: #bdc3c7; margin-top: 50px;">
                 <h3>עדיין אין שאלות בחלק זה</h3>
                 <p>הוסף שאלות מהתפריט הימני</p>
@@ -98,7 +104,7 @@ const UI = {
             return;
         }
 
-        container.innerHTML = filtered.map((q, idx) => {
+        const questionsHTML = filtered.map((q, idx) => {
             let mediaHTML = '';
             const imgSrc = Utils.getImageSrc(q.imageUrl);
             if (imgSrc) mediaHTML += `<div class="image-wrapper"><img src="${imgSrc}" alt="Question Image"></div>`;
@@ -133,6 +139,8 @@ const UI = {
                 ${modelAnsPreview}
             </div>`;
         }).join('');
+
+        container.innerHTML = instructionsHTML + questionsHTML;
     },
 
     renderSubQuestionInputs: function() {
