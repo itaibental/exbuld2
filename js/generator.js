@@ -102,7 +102,6 @@ const Generator = {
         const globalInstructionsHTML = instructions.general ? `<div class="instructions-box global-instructions"><h3>הנחיות כלליות</h3><div class="instructions-text">${instructions.general}</div></div>` : '';
         const logoHTML = logoData ? `<img src="${logoData}" alt="Logo" class="school-logo">` : '';
 
-        // הסקריפט מוזרק כטקסט לתוך ה-HTML שנוצר
         return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>מבחן - ${studentName}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap"><style>
         :root{--primary:#2c3e50;--accent:#3498db;--success:#27ae60;--danger:#e74c3c;}
         body{font-family:'Rubik',sans-serif;background:#f4f6f8;margin:0;padding:2%;color:#2c3e50;user-select:none;}
@@ -123,12 +122,14 @@ const Generator = {
         .teacher-comment { background: #fff; }
         .model-answer-secret { margin-top: 10px; border: 1px dashed #f39c12; padding: 10px; background: #fffdf5; border-radius: 4px; font-size: 0.9em; color: #555; }
         
+        /* Highlighter Tool */
         #highlighterTool { position: fixed; top: 150px; right: 20px; width: 50px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 30px; padding: 15px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10000; border: 1px solid #ddd; transition: opacity 0.3s; }
         .color-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; }
         .color-btn:hover { transform: scale(1.2); }
         .color-btn.active { border-color: #333; transform: scale(1.1); box-shadow: 0 0 0 2px #333; }
         .drag-handle { cursor: move; color: #ccc; font-size: 20px; line-height: 10px; margin-bottom: 5px; user-select: none; }
         
+        /* Modals */
         #startScreen,#timesUpModal,#securityModal,#successModal{position:fixed;top:0;left:0;width:100%;height:100%;background:#2c3e50;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;}#timesUpModal,#securityModal,#successModal{display:none;}
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
         </style></head><body oncontextmenu="return false;">
@@ -138,22 +139,24 @@ const Generator = {
         <div id="startScreen"><h1>${examTitle}</h1><p>משך הבחינה: ${duration} דקות</p><p style="color:#e74c3c;font-weight:bold;margin-bottom:20px;">שים לב: המבחן יתבצע במסך מלא.<br>יציאה ממסך מלא או מעבר לחלון אחר ינעלו את המבחן!</p><button onclick="startExamTimer()" style="padding:15px 30px;font-size:1.5em;background:#27ae60;color:white;border:none;border-radius:10px;">התחל בחינה (מסך מלא)</button></div><div id="timerBadge">זמן: <span id="timerText">--:--</span></div><div id="timesUpModal"><h2>הזמן נגמר!</h2><button onclick="submitExam()">הגש בחינה</button></div><div id="securityModal"><h2>המבחן ננעל!</h2><p>יצאת ממסך מלא או עברת לחלון אחר.</p><input type="password" id="teacherCodeInput" placeholder="קוד מורה לשחרור"><button onclick="unlockExam()">שחרר</button></div>
         
         <div id="successModal">
-            <h1>סיימת!</h1>
-            <p>הקובץ מוכן להגשה.</p>
+            <h1>המבחן הוגש בהצלחה!</h1>
+            <p>הקובץ נשמר במחשבך.</p>
             <div id="submissionActions"></div>
-            <button onclick="enableGradingFromModal()" style="margin-top: 20px; background: transparent; border: 1px solid #fff; color: #fff; padding: 10px;">👨‍🏫 כניסת מורה (בדיקה)</button>
+            <div style="margin-top:30px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.3);">
+                <button onclick="enableGradingFromModal()" style="background: transparent; border: 1px solid #fff; color: #fff; padding: 10px 20px; border-radius: 5px;">👨‍🏫 מורה? לחץ כאן לבדיקה</button>
+            </div>
         </div>
         
         <div class="container" id="mainContainer" style="filter:blur(5px);">
             <div style="text-align:center;">${logoHTML}<h1>${examTitle}</h1></div>
             
             <div class="teacher-controls" style="display:none;">
-                <h3 style="margin-top:0;">👨‍🏫 אזור בדיקת מורה</h3>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size: 1.2em; font-weight: bold;">ציון סופי מחושב: <span id="teacherCalculatedScore" style="color: var(--success);">0</span></div>
+                <h3 style="margin-top:0; color:#d35400;">👨‍🏫 אזור בדיקה וציינון</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div style="font-size: 1.2em; font-weight: bold;">ציון סופי מחושב: <span id="teacherCalculatedScore" style="color: var(--success); font-size:1.4em;">0</span></div>
                     <div>
-                        <button onclick="saveGradedExam()" style="background:#27ae60;color:white;padding:8px 15px;border:none;border-radius:5px; margin-left: 10px;">💾 שמור בדיקה (HTML)</button>
-                        <button onclick="exportToDoc()" style="background:#2980b9;color:white;padding:8px 15px;border:none;border-radius:5px;">📄 הורד כ-DOCX</button>
+                        <button onclick="saveGradedExam()" style="background:#27ae60;color:white;padding:10px 20px;border:none;border-radius:5px; margin-left: 10px; font-weight:bold;">💾 שמור בדיקה (HTML)</button>
+                        <button onclick="exportToDoc()" style="background:#2980b9;color:white;padding:10px 20px;border:none;border-radius:5px; font-weight:bold;">📄 הורד סיכום (DOCX)</button>
                     </div>
                 </div>
             </div>
@@ -166,7 +169,6 @@ const Generator = {
             <div id="teacherSolutionContainer" style="display:none;margin-top:40px;border-top:2px dashed orange;padding-top:20px;"><h2>קובץ פתרון</h2><iframe id="solutionFrame" style="width:100%;height:600px;border:1px solid #ddd;"></iframe></div>
             
             <div style="text-align:center;margin-top:50px;border-top:1px solid #eee;padding-top:20px;">
-                <span style="font-size:0.8em; color:#999;">סה"כ ניקוד במבחן: <span id="maxScoreDisplay"></span></span>
                 <div class="student-submit-area"><br><button onclick="submitExam()" style="background:#27ae60;color:white;padding:15px 30px;font-size:1.2em;border:none;border-radius:30px;">הגש בחינה</button></div>
             </div>
         </div>
@@ -174,6 +176,24 @@ const Generator = {
         let totalTime=${duration}*60,timerInterval,examStarted=false;
         function simpleHash(s){let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return h.toString();}
         
+        // --- Init Logic to Handle Reloads (Teacher opening submitted file) ---
+        window.onload = function() {
+            if(document.body.dataset.status === 'submitted') {
+                document.getElementById('startScreen').style.display='none';
+                document.getElementById('mainContainer').style.filter='none';
+                document.getElementById('timerBadge').style.display='none';
+                document.getElementById('successModal').style.display='flex';
+                // Lock Inputs
+                document.querySelectorAll('input,textarea').forEach(e=>{
+                    if(!e.classList.contains('grade-input') && !e.classList.contains('teacher-comment') && e.id !== 'teacherCodeInput') {
+                        e.setAttribute('readonly','true');
+                        e.disabled = true;
+                    }
+                });
+                document.querySelector('.student-submit-area').style.display='none';
+            }
+        };
+
         function startExamTimer(){
             document.documentElement.requestFullscreen().catch(e=>console.log(e));
             document.getElementById('startScreen').style.display='none';
@@ -248,7 +268,7 @@ const Generator = {
             if(document.fullscreenElement) document.exitFullscreen();
             clearInterval(timerInterval); document.getElementById('timerBadge').style.display='none';
             // Save values to attributes for export
-            document.querySelectorAll('input,textarea').forEach(e=>{e.setAttribute('value',e.value); if(!e.classList.contains('grade-input')&&!e.classList.contains('teacher-comment')) e.setAttribute('readonly','true');});
+            document.querySelectorAll('input,textarea').forEach(e=>{e.setAttribute('value',e.value); if(!e.classList.contains('grade-input')&&!e.classList.contains('teacher-comment')) { e.setAttribute('readonly','true'); e.disabled=true; } });
             document.querySelectorAll('textarea').forEach(t=>t.innerHTML=t.value);
             
             // Download "Solved" HTML
@@ -331,7 +351,7 @@ const Generator = {
                 // Get Grade & Comment
                 const gradeInp = block.querySelector('.grade-input');
                 const grade = gradeInp ? gradeInp.value : '0';
-                const maxGrade = block.querySelector('.grade-max') ? block.querySelector('.grade-max').innerText : '';
+                const maxPoints = block.dataset.points || block.querySelector('.grade-max')?.innerText.replace(/\D/g,'') || '';
                 
                 const commentInp = block.querySelector('.teacher-comment');
                 const comment = commentInp ? commentInp.value : '';
@@ -342,7 +362,7 @@ const Generator = {
                 
                 if(grade || comment) {
                     content += '<div class="teacher-feedback">';
-                    content += '<p><strong>ציון:</strong> ' + grade + ' ' + maxGrade + '</p>';
+                    content += '<p><strong>ציון:</strong> ' + grade + (maxPoints ? ' מתוך ' + maxPoints : '') + '</p>';
                     if(comment) content += '<p><strong>הערת המורה:</strong> ' + comment + '</p>';
                     content += '</div>';
                 }
