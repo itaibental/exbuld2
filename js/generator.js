@@ -132,7 +132,7 @@ const Generator = {
         /* Modals */
         #startScreen,#timesUpModal,#securityModal,#successModal{position:fixed;top:0;left:0;width:100%;height:100%;background:#2c3e50;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;}#timesUpModal,#securityModal,#successModal{display:none;}
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
-        </style></head><body> <!-- Removed oncontextmenu="return false;" -->
+        </style></head><body>
         
         <div id="highlighterTool"><div class="drag-handle" id="hlDragHandle">:::</div><div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div><div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div><div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div><div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div><div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div></div>
 
@@ -232,17 +232,21 @@ const Generator = {
                 document.body.style.cursor = 'default';
             }
         }
+        
+        // Fixed: Use document.execCommand for robust highlighting across boundaries
         document.addEventListener('mouseup', () => {
-            if(!markerColor) return;
+            if (!markerColor) return;
             const sel = window.getSelection();
-            if(!sel.isCollapsed) {
-                try {
-                    const range = sel.getRangeAt(0);
-                    const span = document.createElement('span');
-                    span.style.backgroundColor = markerColor;
-                    range.surroundContents(span);
-                    sel.removeAllRanges();
-                } catch(e) {}
+            if (sel.rangeCount > 0 && !sel.isCollapsed) {
+                // Prevent highlighting inputs or tool
+                const anchorNode = sel.anchorNode;
+                if(anchorNode && (anchorNode.nodeName === 'INPUT' || anchorNode.nodeName === 'TEXTAREA' || (anchorNode.parentElement && anchorNode.parentElement.closest('#highlighterTool')))) return;
+                
+                document.designMode = "on";
+                document.execCommand("styleWithCSS", false, true);
+                document.execCommand("HiliteColor", false, markerColor);
+                document.designMode = "off";
+                sel.removeAllRanges();
             }
         });
 
