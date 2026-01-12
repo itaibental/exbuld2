@@ -107,35 +107,45 @@ body {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 12px;
+    width: 16px; /* הרחבנו את אזור התפיסה */
     cursor: col-resize;
     z-index: 100;
-    background: transparent;
-    transition: background 0.2s;
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: all 0.2s ease;
 }
 
+.resizer-right-col {
+    left: -8px; /* ממקם את ה-Resizer בדיוק על הגבול */
+}
+
+.resizer-left-col {
+    right: 0;
+}
+
+/* Dotted Pattern Visual - עיצוב השטח המקוקו */
 .resizer::after {
     content: '';
     height: 100%;
-    width: 0;
-    border-left: 2px dashed rgba(255, 255, 255, 0.2);
+    width: 4px;
+    /* יצירת אפקט מקוקו כפול */
+    border-left: 2px dotted rgba(255, 255, 255, 0.4);
+    border-right: 2px dotted rgba(255, 255, 255, 0.4);
+    opacity: 0.7;
+    transition: all 0.2s;
+}
+
+/* Hover & Active States */
+.resizer:hover, .resizer.resizing {
+    background: rgba(0, 0, 0, 0.2); /* רקע כהה עדין בעת ריחוף */
 }
 
 .resizer:hover::after, .resizer.resizing::after {
-    border-left-color: var(--accent);
-    border-left-style: solid;
+    border-color: var(--accent); /* שינוי צבע הקיוקוו לתכלת */
+    opacity: 1;
+    width: 6px; /* הרחבה ויזואלית קלה */
 }
-
-.resizer:hover, .resizer.resizing {
-    background: rgba(255,255,255,0.05);
-}
-
-.resizer-right-col { left: 0; }
-.resizer-left-col { right: 0; }
-
 
 /* עיצוב קטגוריות בעמודה הימנית */
 details.editor-category {
@@ -472,27 +482,30 @@ button:active { transform: translateY(0); }
     margin-bottom: 4vh;
     padding-bottom: 2vh;
     border-bottom: 0.3vh solid var(--accent);
+    /* Flexbox ensures perfect centering and stacking */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
-#previewLogo { max-height: 12vh; margin-bottom: 2vh; }
+
+#previewLogo { 
+    display: block;
+    max-height: 15vh; /* הגבלת גובה כדי לא להשתלט על המסך */
+    max-width: 90%;   /* מניעת חריגה לרוחב */
+    width: auto;      /* שמירה על פרופורציות */
+    height: auto;
+    margin: 0 auto 2vh auto; /* מירכוז ורווח תחתון מהכותרת */
+    object-fit: contain; /* הבטחת תצוגה חדה ללא עיוות */
+}
+
 #previewExamTitle {
     margin: 0;
     color: var(--primary);
     font-size: 2.2rem;
     font-weight: 700;
+    width: 100%; /* Ensure title takes full width for text-align center to work if needed */
 }
-#studentNameInput {
-    border: none;
-    border-bottom: 0.3vh dashed #bdc3c7;
-    text-align: center;
-    font-size: 1.2rem;
-    background: transparent;
-    box-shadow: none;
-    width: 50%;
-    margin: 2.5vh auto;
-    display: block;
-    color: #2c3e50;
-}
-#studentNameInput:focus { border-bottom-color: var(--accent); }
 
 #previewInstructionsBox {
     background: var(--accent-light); 
@@ -505,6 +518,18 @@ button:active { transform: translateY(0); }
     color: #455a64;
     font-size: 1.05rem;
     line-height: 1.6;
+}
+
+/* הוספת עיצוב להנחיות פרק בתצוגה המקדימה */
+.preview-part-instructions {
+    background: #e8f6f3;
+    border-right: 4px solid #1abc9c;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    color: #16a085;
+    font-size: 1rem;
+    line-height: 1.5;
 }
 
 /* Toast Notifications */
@@ -573,3 +598,41 @@ button:active { transform: translateY(0); }
 .modal-actions { display: flex; gap: 10px; justify-content: center; }
 .modal-btn { flex: 1; max-width: 120px; }
 .btn-cancel { background: #95a5a6; color: white; }
+
+/* === Text Formatting Tooltip (Editor) === */
+#textFormatTooltip {
+    position: fixed;
+    display: none;
+    background: #2c3e50;
+    padding: 5px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 10000;
+    animation: fadeIn 0.2s;
+}
+#textFormatTooltip button {
+    background: transparent;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 5px 12px;
+    font-size: 1rem;
+    width: auto;
+    margin: 0;
+    box-shadow: none;
+    border-radius: 4px;
+}
+#textFormatTooltip button:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateY(-1px);
+}
+#textFormatTooltip .divider {
+    display: inline-block;
+    width: 1px;
+    height: 15px;
+    background: rgba(255,255,255,0.2);
+    vertical-align: middle;
+    margin: 0 2px;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
