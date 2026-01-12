@@ -35,52 +35,79 @@ const Utils = {
     },
 
     setupResizers: function() {
-        // Setup Right Resizer
+        // Setup Right Resizer (להזזת החלק הימני שמאלה)
         const resizerRight = document.getElementById('dragHandleRight');
         const rightCol = document.getElementById('rightPanel');
-        resizerRight.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            document.body.style.cursor = 'col-resize';
-            resizerRight.classList.add('resizing');
-            const onMove = (e) => {
-                const newWidth = window.innerWidth - e.clientX;
-                if (newWidth > 200 && newWidth < window.innerWidth * 0.6) {
-                    rightCol.style.width = newWidth + 'px';
-                    rightCol.style.flex = 'none';
-                }
-            };
-            const onUp = () => {
-                document.removeEventListener('mousemove', onMove);
-                document.removeEventListener('mouseup', onUp);
-                document.body.style.cursor = 'default';
-                resizerRight.classList.remove('resizing');
-            };
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
-        });
+        
+        if (resizerRight && rightCol) {
+            resizerRight.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                
+                // שינוי סמן ומניעת בחירת טקסט בזמן גרירה
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                
+                resizerRight.classList.add('resizing');
+                
+                const onMove = (e) => {
+                    // חישוב הרוחב החדש: מכיוון שאנחנו ב-RTL והפאנל מימין,
+                    // הרוחב הוא המרחק מהקצה הימני של המסך (window.innerWidth) עד סמן העכבר (e.clientX)
+                    const newWidth = window.innerWidth - e.clientX;
+                    
+                    // הגבלת גבולות (מינימום 200px, מקסימום 60% מהמסך)
+                    if (newWidth > 200 && newWidth < window.innerWidth * 0.6) {
+                        rightCol.style.width = newWidth + 'px';
+                        rightCol.style.flex = 'none'; // ביטול ה-flex כדי שה-width יקבע
+                    }
+                };
+                
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    
+                    // החזרת מצב ברירת מחדל
+                    document.body.style.cursor = 'default';
+                    document.body.style.userSelect = '';
+                    resizerRight.classList.remove('resizing');
+                };
+                
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        }
 
         // Setup Left Resizer
         const resizerLeft = document.getElementById('dragHandleLeft');
         const leftCol = document.getElementById('leftPanel');
-        resizerLeft.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            document.body.style.cursor = 'col-resize';
-            resizerLeft.classList.add('resizing');
-            const onMove = (e) => {
-                const newWidth = e.clientX;
-                if (newWidth > 150 && newWidth < window.innerWidth * 0.4) {
-                    leftCol.style.width = newWidth + 'px';
-                    leftCol.style.flex = 'none';
-                }
-            };
-            const onUp = () => {
-                document.removeEventListener('mousemove', onMove);
-                document.removeEventListener('mouseup', onUp);
-                document.body.style.cursor = 'default';
-                resizerLeft.classList.remove('resizing');
-            };
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
-        });
+        
+        if (resizerLeft && leftCol) {
+            resizerLeft.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                
+                resizerLeft.classList.add('resizing');
+                
+                const onMove = (e) => {
+                    // הפאנל השמאלי מוצמד לשמאל, הרוחב הוא פשוט מיקום העכבר
+                    const newWidth = e.clientX;
+                    if (newWidth > 150 && newWidth < window.innerWidth * 0.4) {
+                        leftCol.style.width = newWidth + 'px';
+                        leftCol.style.flex = 'none';
+                    }
+                };
+                
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    document.body.style.cursor = 'default';
+                    document.body.style.userSelect = '';
+                    resizerLeft.classList.remove('resizing');
+                };
+                
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        }
     }
 };
