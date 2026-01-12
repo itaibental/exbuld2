@@ -27,7 +27,7 @@ const Generator = {
 
         const sectionsHTML = parts.map((p, idx) => {
             const partQuestions = questions.filter(q => q.part === p.id);
-            const partInstrHtml = instructions.parts[p.id] ? `<div class="part-instructions">${instructions.parts[p.id]}</div>` : '';
+            const partInstrHtml = instructions.parts[p.id] ? `<div class="part-instructions">${instructions.parts[p.id].replace(/\n/g, '<br>')}</div>` : '';
             
             let qHtml = '';
             if(partQuestions.length === 0) {
@@ -86,8 +86,58 @@ const Generator = {
         const globalInstructionsHTML = instructions.general ? `<div class="instructions-box global-instructions"><h3>הנחיות כלליות</h3><div class="instructions-text">${instructions.general}</div></div>` : '';
         const logoHTML = logoData ? `<img src="${logoData}" alt="Logo" class="school-logo">` : '';
 
-        // כאן מוזרק הקוד שרץ אצל התלמיד, כולל מנגנון הנעילה
-        return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>מבחן - ${studentName}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap"><style>/* Student CSS Here */ :root{--primary:#2c3e50;--accent:#3498db;--success:#27ae60;--danger:#e74c3c;}body{font-family:'Rubik',sans-serif;background:#f4f6f8;margin:0;padding:2%;color:#2c3e50;user-select:none;}.container{max-width:800px;margin:0 auto;background:white;padding:5%;border-radius:1em;box-shadow:0 1vh 3vh rgba(0,0,0,0.05);}textarea{width:100%;height:20vh;padding:2vh;border:1px solid #ccc;border-radius:0.8em;font-family:inherit;}button{cursor:pointer;}.tab-btn{padding:10px 20px;background:#eee;border:none;margin:5px;border-radius:20px;}.tab-btn.active{background:var(--accent);color:white;}.exam-section{display:none;}.exam-section.active{display:block;}#startScreen,#timesUpModal,#securityModal,#successModal{position:fixed;top:0;left:0;width:100%;height:100%;background:#2c3e50;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;}#timesUpModal,#securityModal,#successModal{display:none;}#timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}</style></head><body oncontextmenu="return false;"><div id="startScreen"><h1>${examTitle}</h1><p>משך הבחינה: ${duration} דקות</p><p style="color:#e74c3c;font-weight:bold;margin-bottom:20px;">שים לב: המבחן יתבצע במסך מלא.<br>יציאה ממסך מלא או מעבר לחלון אחר ינעלו את המבחן!</p><button onclick="startExamTimer()" style="padding:15px 30px;font-size:1.5em;background:#27ae60;color:white;border:none;border-radius:10px;">התחל בחינה (מסך מלא)</button></div><div id="timerBadge">זמן: <span id="timerText">--:--</span></div><div id="timesUpModal"><h2>הזמן נגמר!</h2><button onclick="submitExam()">הגש בחינה</button></div><div id="securityModal"><h2>המבחן ננעל!</h2><p>יצאת ממסך מלא או עברת לחלון אחר.</p><input type="password" id="teacherCodeInput" placeholder="קוד מורה לשחרור"><button onclick="unlockExam()">שחרר</button></div><div id="successModal"><h1>סיימת!</h1><div id="submissionActions"></div></div><div class="container" id="mainContainer" style="filter:blur(5px);"><div style="text-align:center;">${logoHTML}<h1>${examTitle}</h1></div><div class="teacher-controls" style="display:none;border-bottom:1px solid #ccc;padding-bottom:20px;margin-bottom:20px;"><button onclick="enableGrading()">🔓 כניסת מורה</button><div id="gradingTools" style="display:none;margin-top:10px;"><button onclick="saveGradedExam()" style="background:#27ae60;color:white;padding:5px 10px;border:none;border-radius:5px;">💾 שמור בדיקה</button><button onclick="exportToDoc()" style="background:#3498db;color:white;padding:5px 10px;border:none;border-radius:5px;margin-right:10px;">📄 ייצוא ל-Word</button><div id="apiKeyContainer" style="margin-top:10px;"><label>Gemini API Key:</label><input type="password" id="apiKeyInput" onchange="enableAIButtons()"></div></div></div><div style="background:#fff;padding:20px;border:1px solid var(--accent);border-radius:10px;margin-bottom:20px;"><label>שם תלמיד:</label><input type="text" id="studentNameField" value="${studentName}" style="width:100%;padding:10px;"></div>${globalInstructionsHTML}<div class="tabs">${tabsHTML}</div><form id="examForm">${sectionsHTML}</form><div id="teacherSolutionContainer" style="display:none;margin-top:40px;border-top:2px dashed orange;padding-top:20px;"><h2>קובץ פתרון</h2><iframe id="solutionFrame" style="width:100%;height:600px;border:1px solid #ddd;"></iframe></div><div style="text-align:center;margin-top:50px;border-top:1px solid #eee;padding-top:20px;">ציון סופי: <span id="finalScore">--</span><div class="student-submit-area"><br><button onclick="submitExam()" style="background:#27ae60;color:white;padding:15px 30px;font-size:1.2em;border:none;border-radius:30px;">הגש בחינה</button></div></div></div><script>
+        // מחרוזת ה-HTML המלאה
+        return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>מבחן - ${studentName}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap"><style>
+        /* Student CSS */ 
+        :root{--primary:#2c3e50;--accent:#3498db;--success:#27ae60;--danger:#e74c3c;}
+        body{font-family:'Rubik',sans-serif;background:#f4f6f8;margin:0;padding:2%;color:#2c3e50;user-select:none;}
+        .container{max-width:800px;margin:0 auto;background:white;padding:5%;border-radius:1em;box-shadow:0 1vh 3vh rgba(0,0,0,0.05);}
+        textarea{width:100%;height:20vh;padding:2vh;border:1px solid #ccc;border-radius:0.8em;font-family:inherit;}
+        button{cursor:pointer;}
+        .tab-btn{padding:10px 20px;background:#eee;border:none;margin:5px;border-radius:20px;}
+        .tab-btn.active{background:var(--accent);color:white;}
+        .exam-section{display:none;}
+        .exam-section.active{display:block;}
+        .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; }
+        
+        /* Logo Styling */
+        .school-logo {
+            display: block;
+            margin: 0 auto 20px auto; /* Center horizontally with bottom margin */
+            max-width: 200px;
+            max-height: 150px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
+        /* Highlighter Tool CSS */
+        #highlighterTool {
+            position: fixed; top: 150px; right: 20px; width: 50px; background: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 30px; padding: 15px 0;
+            display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10000;
+            border: 1px solid #ddd; transition: opacity 0.3s;
+        }
+        .color-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; }
+        .color-btn:hover { transform: scale(1.2); }
+        .color-btn.active { border-color: #333; transform: scale(1.1); box-shadow: 0 0 0 2px #333; }
+        .drag-handle { cursor: move; color: #ccc; font-size: 20px; line-height: 10px; margin-bottom: 5px; user-select: none; }
+        
+        #startScreen,#timesUpModal,#securityModal,#successModal{position:fixed;top:0;left:0;width:100%;height:100%;background:#2c3e50;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;}#timesUpModal,#securityModal,#successModal{display:none;}
+        #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
+        </style></head><body oncontextmenu="return false;">
+        
+        <!-- Highlighter Tool HTML -->
+        <div id="highlighterTool">
+            <div class="drag-handle" id="hlDragHandle">:::</div>
+            <div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div>
+            <div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div>
+            <div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div>
+            <div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div>
+            <div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div>
+        </div>
+
+        <div id="startScreen"><h1>${examTitle}</h1><p>משך הבחינה: ${duration} דקות</p><p style="color:#e74c3c;font-weight:bold;margin-bottom:20px;">שים לב: המבחן יתבצע במסך מלא.<br>יציאה ממסך מלא או מעבר לחלון אחר ינעלו את המבחן!</p><button onclick="startExamTimer()" style="padding:15px 30px;font-size:1.5em;background:#27ae60;color:white;border:none;border-radius:10px;">התחל בחינה (מסך מלא)</button></div><div id="timerBadge">זמן: <span id="timerText">--:--</span></div><div id="timesUpModal"><h2>הזמן נגמר!</h2><button onclick="submitExam()">הגש בחינה</button></div><div id="securityModal"><h2>המבחן ננעל!</h2><p>יצאת ממסך מלא או עברת לחלון אחר.</p><input type="password" id="teacherCodeInput" placeholder="קוד מורה לשחרור"><button onclick="unlockExam()">שחרר</button></div><div id="successModal"><h1>סיימת!</h1><div id="submissionActions"></div></div><div class="container" id="mainContainer" style="filter:blur(5px);"><div style="text-align:center;">${logoHTML}<h1>${examTitle}</h1></div><div class="teacher-controls" style="display:none;border-bottom:1px solid #ccc;padding-bottom:20px;margin-bottom:20px;"><button onclick="enableGrading()">🔓 כניסת מורה</button><div id="gradingTools" style="display:none;margin-top:10px;"><button onclick="saveGradedExam()" style="background:#27ae60;color:white;padding:5px 10px;border:none;border-radius:5px;">💾 שמור בדיקה</button><button onclick="exportToDoc()" style="background:#3498db;color:white;padding:5px 10px;border:none;border-radius:5px;margin-right:10px;">📄 ייצוא ל-Word</button><div id="apiKeyContainer" style="margin-top:10px;"><label>Gemini API Key:</label><input type="password" id="apiKeyInput" onchange="enableAIButtons()"></div></div></div><div style="background:#fff;padding:20px;border:1px solid var(--accent);border-radius:10px;margin-bottom:20px;"><label>שם תלמיד:</label><input type="text" id="studentNameField" value="${studentName}" style="width:100%;padding:10px;"></div>${globalInstructionsHTML}<div class="tabs">${tabsHTML}</div><form id="examForm">${sectionsHTML}</form><div id="teacherSolutionContainer" style="display:none;margin-top:40px;border-top:2px dashed orange;padding-top:20px;"><h2>קובץ פתרון</h2><iframe id="solutionFrame" style="width:100%;height:600px;border:1px solid #ddd;"></iframe></div><div style="text-align:center;margin-top:50px;border-top:1px solid #eee;padding-top:20px;">ציון סופי: <span id="finalScore">--</span><div class="student-submit-area"><br><button onclick="submitExam()" style="background:#27ae60;color:white;padding:15px 30px;font-size:1.2em;border:none;border-radius:30px;">הגש בחינה</button></div></div></div><script>
         let totalTime=${duration}*60,timerInterval,examStarted=false;
         function simpleHash(s){let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return h.toString();}
         
@@ -106,7 +156,74 @@ const Generator = {
         function showPart(id){document.querySelectorAll('.exam-section').forEach(e=>e.classList.remove('active'));document.getElementById('part-'+id).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');}
         function calcTotal(){let t=0;document.querySelectorAll('.grade-input').forEach(i=>{if(i.value)t+=parseFloat(i.value)});document.getElementById('finalScore').innerText=t;}
         
-        // מנגנון הנעילה
+        // --- Highlighter Logic ---
+        let markerColor = null;
+        function setMarker(color, btn) {
+            markerColor = color;
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            
+            if(color) {
+                // SVG Cursor
+                const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path fill="\${color}" stroke="black" stroke-width="1" d="M28.06 6.94L25.06 3.94a2.003 2.003 0 0 0-2.83 0l-16.17 16.17a2.003 2.003 0 0 0-.58 1.41V26h4.48c.53 0 1.04-.21 1.41-.59l16.17-16.17c.79-.78.79-2.05.52-2.3zM8.5 24H7v-1.5l14.5-14.5 1.5 1.5L8.5 24z"/><path fill="\${color}" d="M4 28l4-4H4z"/></svg>\`;
+                const url = 'data:image/svg+xml;base64,' + btoa(svg);
+                document.body.style.cursor = \`url('\${url}') 0 32, auto\`;
+            } else {
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        document.addEventListener('mouseup', () => {
+            if(!markerColor) return;
+            const sel = window.getSelection();
+            if(!sel.isCollapsed) {
+                const range = sel.getRangeAt(0);
+                try {
+                    const span = document.createElement('span');
+                    span.style.backgroundColor = markerColor;
+                    span.className = 'highlighted-text';
+                    range.surroundContents(span);
+                    sel.removeAllRanges();
+                } catch(e) {
+                    console.log('Selection crosses block boundaries');
+                }
+            }
+        });
+
+        // --- Drag Logic for Highlighter ---
+        const tool = document.getElementById('highlighterTool');
+        const handle = document.getElementById('hlDragHandle');
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        handle.onmousedown = function(e) {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialLeft = tool.offsetLeft;
+            initialTop = tool.offsetTop;
+            document.onmouseup = stopDrag;
+            document.onmousemove = dragElement;
+        };
+
+        function dragElement(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            tool.style.top = (initialTop + dy) + "px";
+            tool.style.left = (initialLeft + dx) + "px"; 
+            tool.style.right = 'auto'; 
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+
+        // --- Lock / Security Logic ---
         function lockExam(){
             clearInterval(timerInterval);
             document.getElementById('securityModal').style.display='flex';
