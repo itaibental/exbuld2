@@ -97,9 +97,6 @@ const UI = {
         const currentPartId = ExamState.currentTab;
         const filtered = ExamState.questions.filter(q => q.part === currentPartId);
         
-        // Note: Part instructions are now handled by the persistent textarea above this container,
-        // so we don't render them here as static HTML to avoid duplication in the Editor view.
-        
         if (filtered.length === 0) {
             container.innerHTML = `
             <div style="text-align: center; color: #bdc3c7; margin-top: 50px;">
@@ -134,9 +131,13 @@ const UI = {
                 modelAnsPreview = q.modelAnswer ? `<div style="background:#fff3cd; padding:1vh; margin-top:1vh; border-radius:0.4em; font-size:0.9rem; color:#856404; border:1px solid #ffeeba;"><strong>👁️ מחוון למורה:</strong> ${q.modelAnswer}</div>` : '';
             }
 
+            // הוספת כפתורי עריכה והסרה כאן
             return `
             <div class="question-card">
-                <button class="btn-delete" onclick="App.deleteQuestion(${q.id})">🗑️ הסר</button>
+                <div class="card-actions">
+                    <button class="btn-edit" onclick="App.editQuestion(${q.id})">✏️ עריכה</button>
+                    <button class="btn-delete" onclick="App.deleteQuestion(${q.id})">🗑️ הסרה</button>
+                </div>
                 <div class="badge">שאלה ${idx + 1} • ${q.points} נקודות</div>
                 <div class="q-text">${q.text}</div>
                 ${mediaHTML}
