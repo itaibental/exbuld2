@@ -20,35 +20,71 @@ const App = {
         }
     },
 
-    // --- Text Formatting Logic ---
+    // --- Question Management: Edit Feature ---
+    editQuestion: function(id) {
+        const q = ExamState.questions.find(q => q.id === id);
+        if (!q) return;
+
+        // 1. טעינת הנתונים לשדות העריכה
+        UI.elements.qText.value = q.text;
+        UI.elements.qPoints.value = q.points;
+        UI.elements.qModelAnswer.value = q.modelAnswer || '';
+        UI.elements.qVideo.value = q.videoUrl || '';
+        UI.elements.qImage.value = q.imageUrl || '';
+        
+        // 2. טעינת סעיפים אם יש
+        ExamState.tempSubQuestions = q.subQuestions ? [...q.subQuestions] : [];
+        UI.renderSubQuestionInputs();
+
+        // 3. מעבר ללשונית המתאימה
+        if (q.part !== ExamState.currentTab) {
+            this.setTab(q.part);
+        }
+        UI.elements.qPart.value = q.part; // עדכון ה-Select
+
+        // 4. הסרת השאלה המקורית (כדי שהמשתמש ילחץ "הוסף" ויצור גרסה מעודכנת)
+        ExamState.removeQuestion(id);
+        UI.updateStats();
+        UI.renderPreview();
+        
+        // 5. גלילה למעלה לאזור העריכה והודעה למשתמש
+        const rightPanel = document.getElementById('rightPanel');
+        if(rightPanel) rightPanel.scrollTop = 0;
+        UI.elements.qText.focus();
+        UI.showToast('השאלה נטענה לעריכה. בצע שינויים ולחץ "הוסף שאלה" לשמירה.');
+    },
+
+    // --- Text Formatting Logic (Updated placement) ---
     setupTextFormatting: function() {
         const tooltip = document.getElementById('textFormatTooltip');
         
         // Hide tooltip on clicking anywhere else
         document.addEventListener('mousedown', (e) => {
-            if (e.target.closest('#textFormatTooltip')) return; // Allow clicking buttons
+            if (e.target.closest('#textFormatTooltip')) return; 
+            // אל תסתיר אם לוחצים בתוך תיבת טקסט
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             tooltip.style.display = 'none';
         });
 
-        // Listen for selection in inputs
-        document.addEventListener('mouseup', (e) => {
+        // Listen for interaction in inputs
+        const handleInputInteraction = (e) => {
             const target = e.target;
-            // Check if target is a text input/textarea in the editor panel OR the new preview instructions
             if ((target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && target.type === 'text')) && 
                 (target.closest('#rightPanel') || target.id === 'previewPartInstructions')) {
                 
-                const start = target.selectionStart;
-                const end = target.selectionEnd;
-
-                if (start !== end) {
-                    this.activeFormatInput = target;
-                    // Position tooltip
-                    tooltip.style.left = `${e.clientX - 40}px`;
-                    tooltip.style.top = `${e.clientY - 50}px`;
-                    tooltip.style.display = 'block';
-                }
+                this.activeFormatInput = target;
+                
+                // חישוב מיקום: הצמדה לחלק העליון של התיבה
+                const rect = target.getBoundingClientRect();
+                tooltip.style.left = `${rect.left}px`;
+                tooltip.style.top = `${rect.top - 40}px`; // 40px מעל התיבה
+                tooltip.style.display = 'flex'; // Use flex for layout
             }
-        });
+        };
+
+        // הצגת הסרגל כשנכנסים לפוקוס או בוחרים טקסט
+        document.addEventListener('focusin', handleInputInteraction);
+        document.addEventListener('mouseup', handleInputInteraction);
     },
 
     applyFormat: function(tag) {
@@ -60,14 +96,20 @@ const App = {
         const text = el.value;
         const selectedText = text.substring(start, end);
         
-        if (!selectedText) return;
+        if (!selectedText) {
+            UI.showToast('אנא סמן טקסט לעיצוב', 'error');
+            return;
+        }
 
         const newText = text.substring(0, start) + `<${tag}>${selectedText}</${tag}>` + text.substring(end);
         el.value = newText;
 
         // Trigger input event to update previews
         el.dispatchEvent(new Event('input', { bubbles: true }));
-        document.getElementById('textFormatTooltip').style.display = 'none';
+        
+        // שומר על הפוקוס והמיקום
+        el.focus();
+        el.setSelectionRange(start, end + tag.length * 2 + 5); // Approximate selection fix
     },
 
     // --- Part Management Handlers ---
@@ -99,7 +141,6 @@ const App = {
 
         if(UI.elements.qPart.value !== partId) {
             UI.elements.qPart.value = partId;
-            // No need to call onPartSelectChange here to avoid loops, just update text inputs if needed
             const part = ExamState.parts.find(p => p.id === partId);
             if(part) {
                 UI.elements.partNameInput.value = part.name;
@@ -157,22 +198,18 @@ const App = {
         UI.updateStats();
     },
 
-    // Updated Handler for Right Column Input
     savePartInstructions: function() {
         const val = UI.elements.partInstructions.value;
         ExamState.instructions.parts[UI.elements.qPart.value] = val;
-        // Sync Middle Column
         UI.updatePartInstructionsInput(val);
     },
 
-    // New Handler for Middle Column Input
     updatePartInstructionsFromPreview: function(value) {
         ExamState.instructions.parts[ExamState.currentTab] = value;
-        // Sync Right Column
         if(UI.elements.partInstructions) UI.elements.partInstructions.value = value;
     },
 
-    // --- Question Management Handlers (UNCHANGED) ---
+    // --- Question Management Handlers ---
     addQuestion: function() {
         const text = UI.elements.qText.value.trim();
         const modelAnswer = UI.elements.qModelAnswer.value.trim();
@@ -198,7 +235,6 @@ const App = {
 
         ExamState.addQuestion(question);
         
-        // Reset Form
         UI.elements.qText.value = '';
         UI.elements.qModelAnswer.value = '';
         UI.elements.qPoints.value = '10';
@@ -222,7 +258,7 @@ const App = {
         });
     },
 
-    // --- Sub Question Handlers (UNCHANGED) ---
+    // --- Sub Question Handlers ---
     addSubQuestionField: function() {
         const id = Date.now() + Math.random();
         ExamState.tempSubQuestions.push({ id, text: '', points: 5, modelAnswer: '' });
@@ -242,7 +278,7 @@ const App = {
         }
     },
 
-    // --- General Settings Handlers (UNCHANGED) ---
+    // --- General Settings Handlers ---
     updateExamTitle: function() {
         ExamState.examTitle = UI.elements.examTitleInput.value.trim() || 'מבחן בגרות';
         UI.elements.previewExamTitle.textContent = ExamState.examTitle;
