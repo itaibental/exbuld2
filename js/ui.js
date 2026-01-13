@@ -11,7 +11,8 @@ const UI = {
             'previewExamTitle', 'previewLogo', 'examDurationInput', 
             'unlockCodeInput', 'teacherEmailInput', 'driveFolderInput', 
             'subQuestionsList', 'mainModelAnswerContainer', 
-            'toastContainer', 'confirmModal'
+            'toastContainer', 'confirmModal',
+            'previewPartInstructions' // Added newly created element
         ];
         idList.forEach(id => {
             const el = document.getElementById(id);
@@ -68,6 +69,12 @@ const UI = {
         });
     },
 
+    updatePartInstructionsInput: function(text) {
+        if(this.elements.previewPartInstructions) {
+            this.elements.previewPartInstructions.value = text || '';
+        }
+    },
+
     updateStats: function() {
         const container = this.elements.statsContainer;
         container.innerHTML = '';
@@ -90,13 +97,11 @@ const UI = {
         const currentPartId = ExamState.currentTab;
         const filtered = ExamState.questions.filter(q => q.part === currentPartId);
         
-        // בניית ה-HTML להנחיות הפרק
-        const partInstructions = ExamState.instructions.parts[currentPartId] || '';
-        const instructionsHTML = partInstructions ? `<div class="preview-part-instructions">${partInstructions.replace(/\n/g, '<br>')}</div>` : '';
-
+        // Note: Part instructions are now handled by the persistent textarea above this container,
+        // so we don't render them here as static HTML to avoid duplication in the Editor view.
+        
         if (filtered.length === 0) {
             container.innerHTML = `
-            ${instructionsHTML}
             <div style="text-align: center; color: #bdc3c7; margin-top: 50px;">
                 <h3>עדיין אין שאלות בחלק זה</h3>
                 <p>הוסף שאלות מהתפריט הימני</p>
@@ -140,7 +145,7 @@ const UI = {
             </div>`;
         }).join('');
 
-        container.innerHTML = instructionsHTML + questionsHTML;
+        container.innerHTML = questionsHTML;
     },
 
     renderSubQuestionInputs: function() {
