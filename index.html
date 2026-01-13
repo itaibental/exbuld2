@@ -214,7 +214,23 @@
         <div class="resizer resizer-left-col" id="dragHandleLeft"></div>
 
         <div class="scroll-content">
-            <div style="text-align: center; margin-top: 5vh;">
+            <!-- אזור חדש לשמירה וטעינה -->
+            <div style="margin-top: 5vh; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3vh; margin-bottom: 3vh;">
+                <h3>💾 שמירה וטעינה</h3>
+                <p style="color: #bdc3c7; font-size: 0.85rem; margin-bottom: 2vh;">שמור את העבודה כקובץ כדי להמשיך לערוך אחר כך.</p>
+                
+                <button class="btn-download" style="background: #2c3e50; border: 1px solid #34495e; margin-bottom: 10px;" onclick="App.saveProject()">
+                    שמור טיוטה (JSON)
+                </button>
+                
+                <button class="btn-download" style="background: #2c3e50; border: 1px solid #34495e;" onclick="document.getElementById('projectFileInput').click()">
+                    טען טיוטה מקובץ
+                </button>
+                <!-- Hidden File Input -->
+                <input type="file" id="projectFileInput" accept=".json" style="display: none;" onchange="App.handleProjectLoad(event)">
+            </div>
+
+            <div style="text-align: center;">
                 <h2>📤 סיום והפצה</h2>
                 <p style="color: #bdc3c7; margin-bottom: 4vh;">לאחר סיום עריכת המבחן, הורד את הקובץ ושלח אותו לתלמידים.</p>
                 
@@ -227,7 +243,6 @@
                     הורד מבחן (HTML)
                 </button>
                 
-                <!-- NEW DOCX BUTTON -->
                 <button class="btn-download" style="background: #2980b9; margin-top: 15px;" onclick="Generator.generateAndDownloadDocx()">
                     הורד כ-DOCX (לפתרון)
                 </button>
