@@ -7,7 +7,21 @@ const Generator = {
         const teacherEmail = UI.elements.teacherEmailInput.value.trim();
         const driveLink = UI.elements.driveFolderInput.value.trim();
 
-        const htmlContent = this.buildStudentHTML(name, ExamState.questions, ExamState.instructions, ExamState.examTitle, ExamState.logoData, ExamState.solutionDataUrl, duration, unlockCodeHash, ExamState.parts, teacherEmail, driveLink);
+        // 1. יצירת אובייקט הנתונים המלא לשחזור (זהה ל-saveProject)
+        const projectData = {
+            state: ExamState,
+            meta: {
+                duration: UI.elements.examDurationInput.value,
+                unlockCode: UI.elements.unlockCodeInput.value,
+                teacherEmail: UI.elements.teacherEmailInput.value,
+                driveLink: UI.elements.driveFolderInput.value,
+                examTitle: UI.elements.examTitleInput.value,
+                generalInstructions: UI.elements.examInstructions.value
+            },
+            timestamp: Date.now()
+        };
+
+        const htmlContent = this.buildStudentHTML(name, ExamState.questions, ExamState.instructions, ExamState.examTitle, ExamState.logoData, ExamState.solutionDataUrl, duration, unlockCodeHash, ExamState.parts, teacherEmail, driveLink, projectData);
         
         const blob = new Blob([htmlContent], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
@@ -92,13 +106,13 @@ const Generator = {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${ExamState.studentName || 'מבחן'}.doc`; // .doc opens better for simple HTML content
+        link.download = `${ExamState.studentName || 'מבחן'}.doc`; 
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     },
 
-    buildStudentHTML: function(studentName, questions, instructions, examTitle, logoData, solutionDataUrl, duration, unlockCodeHash, parts, teacherEmail, driveLink) {
+    buildStudentHTML: function(studentName, questions, instructions, examTitle, logoData, solutionDataUrl, duration, unlockCodeHash, parts, teacherEmail, driveLink, projectData) {
         
         const tabsHTML = parts.map((p, idx) => `<button class="tab-btn ${idx===0?'active':''}" onclick="showPart('${p.id}')">${p.name}</button>`).join('');
 
@@ -177,6 +191,9 @@ const Generator = {
         const globalInstructionsHTML = instructions.general ? `<div class="instructions-box global-instructions"><h3>הנחיות כלליות</h3><div class="instructions-text">${instructions.general}</div></div>` : '';
         const logoHTML = logoData ? `<img src="${logoData}" alt="Logo" class="school-logo">` : '';
 
+        // הטמעת נתוני הפרויקט לשחזור
+        const embeddedProjectData = projectData ? `<script type="application/json" id="exam-engine-data">${JSON.stringify(projectData).replace(/<\/script>/g, '<\\/script>')}</script>` : '';
+
         return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>מבחן - ${studentName}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap"><style>
         :root{--primary:#2c3e50;--accent:#3498db;--success:#27ae60;--danger:#e74c3c;}
         body{font-family:'Rubik',sans-serif;background:#f4f6f8;margin:0;padding:2%;color:#2c3e50;font-size:18px;line-height:1.5;} 
@@ -190,33 +207,29 @@ const Generator = {
         .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; display: block !important; width: 100%; box-sizing: border-box; }
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
         
-        /* Media Styles */
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
         .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; }
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
 
-        /* Teacher Grading Styles */
         .teacher-controls { background: #fdf2e9; padding: 15px; border: 1px solid #f39c12; border-radius: 8px; margin-bottom: 20px; }
         .grading-area { display: none; margin-top: 15px; background: #fafafa; padding: 10px; border-top: 2px solid #bdc3c7; }
         .grade-input { width: 60px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
         .teacher-comment { background: #fff; }
         .model-answer-secret { margin-top: 10px; border: 1px dashed #f39c12; padding: 10px; background: #fffdf5; border-radius: 4px; font-size: 0.9em; color: #555; }
         
-        /* Highlighter Tool */
         #highlighterTool { position: fixed; top: 150px; right: 20px; width: 50px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 30px; padding: 15px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10000; border: 1px solid #ddd; transition: opacity 0.3s; }
         .color-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; }
         .color-btn:hover { transform: scale(1.2); }
         .color-btn.active { border-color: #333; transform: scale(1.1); box-shadow: 0 0 0 2px #333; }
         .drag-handle { cursor: move; color: #ccc; font-size: 20px; line-height: 10px; margin-bottom: 5px; user-select: none; }
         
-        /* Modals */
         #startScreen,#timesUpModal,#securityModal,#successModal{position:fixed;top:0;left:0;width:100%;height:100%;background:#2c3e50;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;}#timesUpModal,#securityModal,#successModal{display:none;}
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
         #securityModal h2, #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; }
         </style></head><body>
-        
+        ${embeddedProjectData}
         <div id="highlighterTool"><div class="drag-handle" id="hlDragHandle">:::</div><div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div><div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div><div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div><div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div><div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div></div>
 
         <div id="startScreen"><h1>${examTitle}</h1><p>משך הבחינה: ${duration} דקות</p><p style="color:#e74c3c;font-weight:bold;margin-bottom:20px;">שים לב: המבחן יתבצע במסך מלא.<br>יציאה ממסך מלא או מעבר לחלון אחר ינעלו את המבחן!</p><button onclick="startExamTimer()" style="padding:15px 30px;font-size:1.5em;background:#27ae60;color:white;border:none;border-radius:10px;">התחל בחינה (מסך מלא)</button></div><div id="timerBadge">זמן: <span id="timerText">--:--</span></div><div id="timesUpModal"><h2>הזמן נגמר!</h2><button onclick="submitExam()">הגש בחינה</button></div><div id="securityModal"><h2>המבחן ננעל!</h2><p style="font-size: 1.5rem;">יצאת ממסך מלא או עברת לחלון אחר.</p><input type="password" id="teacherCodeInput" placeholder="קוד מורה לשחרור"><button onclick="unlockExam()">שחרר</button></div>
@@ -312,40 +325,25 @@ const Generator = {
             }
         }
         
-        // Improved Recursive Highlighter - Fixed Selection Issue
         document.addEventListener('mouseup', () => {
             if (!markerColor) return;
             const sel = window.getSelection();
             if (sel.rangeCount > 0 && !sel.isCollapsed) {
                 const range = sel.getRangeAt(0);
                 const common = range.commonAncestorContainer;
-                
-                // Prevent highlighting tools
                 if(common.nodeType === 1 && (common.closest('#highlighterTool') || common.tagName === 'TEXTAREA' || common.tagName === 'INPUT')) return;
                 if(common.nodeType === 3 && (common.parentNode.closest('#highlighterTool') || common.parentNode.tagName === 'TEXTAREA')) return;
 
-                // Use simple span wrapping for basic cases
-                if (range.commonAncestorContainer.nodeType === 3) {
-                    try {
-                        const span = document.createElement("span");
-                        span.style.backgroundColor = markerColor;
-                        range.surroundContents(span);
-                    } catch(e) {
-                       // Fallback for complex overlapping
-                       document.designMode = "on";
-                       document.execCommand("HiliteColor", false, markerColor);
-                       document.designMode = "off";
-                    }
-                } else {
-                    document.designMode = "on";
-                    document.execCommand("HiliteColor", false, markerColor);
-                    document.designMode = "off";
+                document.designMode = "on";
+                if(document.queryCommandEnabled("hiliteColor")) {
+                    document.execCommand("styleWithCSS", false, true);
+                    document.execCommand("hiliteColor", false, markerColor);
                 }
+                document.designMode = "off";
                 sel.removeAllRanges();
             }
         });
 
-        // Drag Logic
         const tool = document.getElementById('highlighterTool');
         const handle = document.getElementById('hlDragHandle');
         let isDragging = false, startX, startY, initialLeft, initialTop;
@@ -355,7 +353,6 @@ const Generator = {
             document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY)+"px"; tool.style.left=(initialLeft+e.clientX-startX)+"px"; tool.style.right='auto';};
         };
 
-        // Security
         function lockExam(){ clearInterval(timerInterval); document.getElementById('securityModal').style.display='flex'; }
         function checkSec(){ if(!examStarted||document.body.dataset.status==='submitted')return; if(document.hidden){lockExam();} }
         document.addEventListener('visibilitychange',checkSec);
