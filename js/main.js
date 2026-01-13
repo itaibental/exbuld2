@@ -21,31 +21,36 @@ const App = {
 
     // --- Save & Load Project Logic ---
     saveProject: function() {
-        // Prepare object containing everything needed to restore
-        const projectData = {
-            state: ExamState,
-            meta: {
-                duration: UI.elements.examDurationInput.value,
-                unlockCode: UI.elements.unlockCodeInput.value,
-                teacherEmail: UI.elements.teacherEmailInput.value,
-                driveLink: UI.elements.driveFolderInput.value,
-                // Title and instructions are in ExamState, but good to double check synced
-                examTitle: UI.elements.examTitleInput.value,
-                generalInstructions: UI.elements.examInstructions.value
-            },
-            timestamp: Date.now()
-        };
+        try {
+            // Prepare object containing everything needed to restore
+            const projectData = {
+                state: ExamState,
+                meta: {
+                    duration: UI.elements.examDurationInput?.value || 90,
+                    unlockCode: UI.elements.unlockCodeInput?.value || '',
+                    teacherEmail: UI.elements.teacherEmailInput?.value || '',
+                    driveLink: UI.elements.driveFolderInput?.value || '',
+                    // Title and instructions are in ExamState, but good to double check synced
+                    examTitle: UI.elements.examTitleInput?.value || '',
+                    generalInstructions: UI.elements.examInstructions?.value || ''
+                },
+                timestamp: Date.now()
+            };
 
-        const dataStr = JSON.stringify(projectData, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `exam-draft-${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        UI.showToast('טיוטת המבחן נשמרה בהצלחה!');
+            const dataStr = JSON.stringify(projectData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `exam-draft-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            UI.showToast('טיוטת המבחן נשמרה בהצלחה!');
+        } catch (e) {
+            console.error("Save Error:", e);
+            UI.showToast('שגיאה בשמירת הטיוטה: ' + e.message, 'error');
+        }
     },
 
     handleProjectLoad: function(event) {
