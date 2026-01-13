@@ -1,23 +1,33 @@
 /* ========================================== */
-/* === 1. משתני עיצוב (Theme Variables) === */
-/* ========================================== */
-:root {
-    --primary: #2c3e50;
-    --primary-dark: #1a252f;
-    --sidebar-bg: #2c3e50;
-    --sidebar-border: #1a252f;
-    --accent: #3498db;
-    --accent-hover: #2980b9;
-    --accent-light: #ebf5fb;
-    --bg-page: #f4f6f8;
-    --bg-panel: #ffffff;
-    --bg-card-editor: #f8f9fa;
-    --success: #27ae60;
-    --danger: #e74c3c;
-    --border: #bdc3c7;
-    --shadow: 0 0.5vh 1vh rgba(0,0,0,0.05), 0 0.2vh 0.5vh rgba(0,0,0,0.1);
-    --shadow-hover: 0 1.5vh 2vh rgba(0,0,0,0.1), 0 0.5vh 1vh rgba(0,0,0,0.05);
-    --input-bg: #f5f7f9;
+/* New Style for Middle Column Instructions Editor */
+.current-part-instructions-box {
+    margin-bottom: 20px;
+}
+
+.current-part-instructions-box textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 15px;
+    border: 1px dashed var(--accent); /* Dashed border to indicate "edit mode" */
+    background-color: #e8f6f3; /* Matching the student view color */
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    color: #16a085;
+    resize: vertical;
+    transition: all 0.3s;
+}
+
+.current-part-instructions-box textarea:focus {
+    background-color: #fff;
+    border-style: solid;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.current-part-instructions-box textarea::placeholder {
+    color: #a2d9ce;
+    font-style: italic;
 }
 
 body {
