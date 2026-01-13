@@ -155,7 +155,6 @@ const UI = {
             const label = ExamState.subLabels[idx] || (idx + 1);
             const row = document.createElement('div');
             row.className = 'sub-q-row';
-            // שינוי כאן: החלפת input ב-textarea כדי לאפשר מתיחה
             row.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                     <strong>סעיף ${label}'</strong>
@@ -164,7 +163,6 @@ const UI = {
                 <textarea placeholder="תוכן הסעיף" oninput="App.updateSubQuestionData(${sq.id}, 'text', this.value)" style="margin-bottom:5px; height: 60px; min-height: 40px;">${sq.text}</textarea>
                 <div style="display:flex; gap:10px;">
                     <input type="number" placeholder="נקודות" value="${sq.points}" oninput="App.updateSubQuestionData(${sq.id}, 'points', parseInt(this.value)||0)" style="width:80px;">
-                    <input type="text" placeholder="מחוון לסעיף" value="${sq.modelAnswer}" oninput="App.updateSubQuestionData(${sq.id}, 'modelAnswer', this.value)" style="flex:1; border-color:#f39c12; background:#fffdf5;">
                 </div>
             `;
             list.appendChild(row);
