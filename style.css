@@ -1,33 +1,23 @@
 /* ========================================== */
-/* New Style for Middle Column Instructions Editor */
-.current-part-instructions-box {
-    margin-bottom: 20px;
-}
-
-.current-part-instructions-box textarea {
-    width: 100%;
-    min-height: 60px;
-    padding: 15px;
-    border: 1px dashed var(--accent); /* Dashed border to indicate "edit mode" */
-    background-color: #e8f6f3; /* Matching the student view color */
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 1rem;
-    color: #16a085;
-    resize: vertical;
-    transition: all 0.3s;
-}
-
-.current-part-instructions-box textarea:focus {
-    background-color: #fff;
-    border-style: solid;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-}
-
-.current-part-instructions-box textarea::placeholder {
-    color: #a2d9ce;
-    font-style: italic;
+/* === 1. משתני עיצוב (Theme Variables) === */
+/* ========================================== */
+:root {
+    --primary: #2c3e50;
+    --primary-dark: #1a252f;
+    --sidebar-bg: #2c3e50;
+    --sidebar-border: #1a252f;
+    --accent: #3498db;
+    --accent-hover: #2980b9;
+    --accent-light: #ebf5fb;
+    --bg-page: #f4f6f8;
+    --bg-panel: #ffffff;
+    --bg-card-editor: #f8f9fa;
+    --success: #27ae60;
+    --danger: #e74c3c;
+    --border: #bdc3c7;
+    --shadow: 0 0.5vh 1vh rgba(0,0,0,0.05), 0 0.2vh 0.5vh rgba(0,0,0,0.1);
+    --shadow-hover: 0 1.5vh 2vh rgba(0,0,0,0.1), 0 0.5vh 1vh rgba(0,0,0,0.05);
+    --input-bg: #f5f7f9;
 }
 
 body {
@@ -156,6 +146,7 @@ body {
     opacity: 1;
     width: 6px; /* הרחבה ויזואלית קלה */
 }
+
 
 /* עיצוב קטגוריות בעמודה הימנית */
 details.editor-category {
@@ -517,6 +508,20 @@ button:active { transform: translateY(0); }
     width: 100%; /* Ensure title takes full width for text-align center to work if needed */
 }
 
+#studentNameInput {
+    border: none;
+    border-bottom: 0.3vh dashed #bdc3c7;
+    text-align: center;
+    font-size: 1.2rem;
+    background: transparent;
+    box-shadow: none;
+    width: 50%;
+    margin: 2.5vh auto;
+    display: block;
+    color: #2c3e50;
+}
+#studentNameInput:focus { border-bottom-color: var(--accent); }
+
 #previewInstructionsBox {
     background: var(--accent-light); 
     padding: 2.5vh; 
@@ -528,18 +533,6 @@ button:active { transform: translateY(0); }
     color: #455a64;
     font-size: 1.05rem;
     line-height: 1.6;
-}
-
-/* הוספת עיצוב להנחיות פרק בתצוגה המקדימה */
-.preview-part-instructions {
-    background: #e8f6f3;
-    border-right: 4px solid #1abc9c;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 4px;
-    color: #16a085;
-    font-size: 1rem;
-    line-height: 1.5;
 }
 
 /* Toast Notifications */
@@ -619,6 +612,9 @@ button:active { transform: translateY(0); }
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     z-index: 10000;
     animation: fadeIn 0.2s;
+    /* Ensure it behaves like a toolbar */
+    flex-direction: row;
+    gap: 2px;
 }
 #textFormatTooltip button {
     background: transparent;
@@ -644,5 +640,71 @@ button:active { transform: translateY(0); }
     background: rgba(255,255,255,0.2);
     vertical-align: middle;
     margin: 0 2px;
+    align-self: center;
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* New Style for Middle Column Instructions Editor */
+.current-part-instructions-box {
+    margin-bottom: 20px;
+}
+
+.current-part-instructions-box textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 15px;
+    border: 1px dashed var(--accent); /* Dashed border to indicate "edit mode" */
+    background-color: #e8f6f3; /* Matching the student view color */
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    color: #16a085;
+    resize: vertical;
+    transition: all 0.3s;
+}
+
+.current-part-instructions-box textarea:focus {
+    background-color: #fff;
+    border-style: solid;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.current-part-instructions-box textarea::placeholder {
+    color: #a2d9ce;
+    font-style: italic;
+}
+
+/* Card Actions (Edit/Delete Buttons) */
+.card-actions {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit, .btn-delete {
+    position: static; /* Override previous absolute */
+    background-color: white;
+    border: 1px solid #ddd;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-edit:hover {
+    background-color: #ebf5fb;
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.btn-delete:hover {
+    background-color: #fff5f5;
+    color: var(--danger);
+    border-color: var(--danger);
+}
