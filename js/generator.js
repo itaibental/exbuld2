@@ -312,22 +312,35 @@ const Generator = {
             }
         }
         
-        // Improved Recursive Highlighter
+        // Improved Recursive Highlighter - Fixed Selection Issue
         document.addEventListener('mouseup', () => {
             if (!markerColor) return;
             const sel = window.getSelection();
             if (sel.rangeCount > 0 && !sel.isCollapsed) {
                 const range = sel.getRangeAt(0);
                 const common = range.commonAncestorContainer;
+                
+                // Prevent highlighting tools
                 if(common.nodeType === 1 && (common.closest('#highlighterTool') || common.tagName === 'TEXTAREA' || common.tagName === 'INPUT')) return;
                 if(common.nodeType === 3 && (common.parentNode.closest('#highlighterTool') || common.parentNode.tagName === 'TEXTAREA')) return;
 
-                document.designMode = "on";
-                if(document.queryCommandEnabled("hiliteColor")) {
-                    document.execCommand("styleWithCSS", false, true);
-                    document.execCommand("hiliteColor", false, markerColor);
+                // Use simple span wrapping for basic cases
+                if (range.commonAncestorContainer.nodeType === 3) {
+                    try {
+                        const span = document.createElement("span");
+                        span.style.backgroundColor = markerColor;
+                        range.surroundContents(span);
+                    } catch(e) {
+                       // Fallback for complex overlapping
+                       document.designMode = "on";
+                       document.execCommand("HiliteColor", false, markerColor);
+                       document.designMode = "off";
+                    }
+                } else {
+                    document.designMode = "on";
+                    document.execCommand("HiliteColor", false, markerColor);
+                    document.designMode = "off";
                 }
-                document.designMode = "off";
                 sel.removeAllRanges();
             }
         });
