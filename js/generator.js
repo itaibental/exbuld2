@@ -21,6 +21,83 @@ const Generator = {
         UI.showToast('קובץ המבחן הורד בהצלחה!');
     },
 
+    // NEW FUNCTION: Download as DOCX
+    generateAndDownloadDocx: function() {
+        // Basic HTML structure compatible with Word
+        let content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+            <meta charset="utf-8">
+            <title>${ExamState.examTitle}</title>
+            <style>
+                body { font-family: Arial, sans-serif; direction: rtl; }
+                .question-box { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+                .sub-q { margin-right: 20px; margin-top: 10px; }
+                .answer-space { margin-top: 10px; color: #999; }
+                img { max-width: 400px; height: auto; display: block; margin: 10px 0; }
+            </style>
+        </head>
+        <body>`;
+
+        // Logo
+        if (ExamState.logoData) {
+            content += `<div style="text-align:center"><img src="${ExamState.logoData}" alt="Logo"></div>`;
+        }
+
+        // Title & Header
+        content += `<h1 style="text-align:center;">${ExamState.examTitle}</h1>`;
+        if (ExamState.instructions.general) {
+            content += `<div style="background:#f0f0f0; padding:10px; margin-bottom:20px;"><strong>הנחיות:</strong><br>${ExamState.instructions.general.replace(/\n/g, '<br>')}</div>`;
+        }
+
+        // Iterate Parts
+        ExamState.parts.forEach(part => {
+            content += `<h2>${part.name}</h2>`;
+            if (ExamState.instructions.parts[part.id]) {
+                content += `<p><em>${ExamState.instructions.parts[part.id].replace(/\n/g, '<br>')}</em></p>`;
+            }
+
+            const questions = ExamState.questions.filter(q => q.part === part.id);
+            if (questions.length === 0) {
+                content += `<p>(אין שאלות בחלק זה)</p>`;
+            } else {
+                questions.forEach((q, idx) => {
+                    content += `<div class="question-box">`;
+                    content += `<p><strong>שאלה ${idx + 1}</strong> (${q.points} נקודות)</p>`;
+                    content += `<p>${q.text.replace(/\n/g, '<br>')}</p>`;
+                    
+                    if (q.imageUrl) {
+                        content += `<img src="${q.imageUrl}" />`;
+                    }
+
+                    if (q.subQuestions && q.subQuestions.length > 0) {
+                        q.subQuestions.forEach((sq, si) => {
+                            const label = ExamState.subLabels[si] || (si + 1);
+                            content += `<div class="sub-q">
+                                <p><strong>סעיף ${label}'</strong> (${sq.points} נק'): ${sq.text}</p>
+                                <p class="answer-space">_________________________________________________<br>_________________________________________________</p>
+                            </div>`;
+                        });
+                    } else {
+                        content += `<p class="answer-space"><br>_________________________________________________<br>_________________________________________________<br>_________________________________________________</p>`;
+                    }
+                    content += `</div>`;
+                });
+            }
+        });
+
+        content += `</body></html>`;
+
+        // Download
+        const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${ExamState.studentName || 'מבחן'}.doc`; // .doc opens better for simple HTML content
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
     buildStudentHTML: function(studentName, questions, instructions, examTitle, logoData, solutionDataUrl, duration, unlockCodeHash, parts, teacherEmail, driveLink) {
         
         const tabsHTML = parts.map((p, idx) => `<button class="tab-btn ${idx===0?'active':''}" onclick="showPart('${p.id}')">${p.name}</button>`).join('');
@@ -35,8 +112,7 @@ const Generator = {
             } else {
                 qHtml = partQuestions.map((q, qIdx) => {
                     const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
-                    // Updated Video Wrapper HTML
-                    let vid = embedSrc ? `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>` : '';
+                    let vid = embedSrc ? `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0"></iframe></div>` : '';
                     const imgSrc = Utils.getImageSrc(q.imageUrl);
                     let img = imgSrc ? `<div class="image-wrapper"><img src="${imgSrc}" alt="Question Image"></div>` : '';
 
@@ -44,7 +120,6 @@ const Generator = {
                     let gradingHTML = '';
                     let modelAnsHtml = '';
 
-                    // בניית HTML לשאלה עם סעיפים
                     if (q.subQuestions && q.subQuestions.length > 0) {
                         interactionHTML = q.subQuestions.map((sq, si) => {
                             const label = ExamState.subLabels[si] || (si + 1);
@@ -68,7 +143,6 @@ const Generator = {
                             </div>`;
                         }).join('');
                     } else {
-                        // בניית HTML לשאלה רגילה
                         modelAnsHtml = q.modelAnswer ? `<div class="model-answer-secret" style="display:none; margin-top:15px; background:#fff3cd; color:#856404; padding:10px; border-radius:5px; border:1px solid #ffeeba;"><strong>🔑 תשובה לדוגמא (למורה):</strong><br><div style="white-space:pre-wrap; margin-top:5px;" id="model-ans-text-${q.id}" class="model-ans-text-content">${q.modelAnswer}</div></div>` : '';
                         interactionHTML = `<div class="answer-area"><label>תשובה:</label><textarea class="student-ans" id="student-ans-${q.id}" placeholder="כתוב את תשובתך כאן..." onpaste="return false;"></textarea></div>`;
                         gradingHTML = `
@@ -113,13 +187,13 @@ const Generator = {
         .tab-btn.active{background:var(--accent);color:white;}
         .exam-section{display:none;}
         .exam-section.active{display:block;}
-        .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; }
+        .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; display: block !important; width: 100%; box-sizing: border-box; }
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
         
-        /* Media Styles - Full Width & Responsive */
+        /* Media Styles */
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
-        .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; } /* Added Shield CSS */
+        .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; }
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
 
@@ -140,8 +214,7 @@ const Generator = {
         /* Modals */
         #startScreen,#timesUpModal,#securityModal,#successModal{position:fixed;top:0;left:0;width:100%;height:100%;background:#2c3e50;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;}#timesUpModal,#securityModal,#successModal{display:none;}
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
-        #securityModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; } 
-        #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; } 
+        #securityModal h2, #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; }
         </style></head><body>
         
         <div id="highlighterTool"><div class="drag-handle" id="hlDragHandle">:::</div><div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div><div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div><div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div><div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div><div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div></div>
@@ -239,74 +312,27 @@ const Generator = {
             }
         }
         
-        // --- Improved Recursive Highlighter ---
+        // Improved Recursive Highlighter
         document.addEventListener('mouseup', () => {
             if (!markerColor) return;
             const sel = window.getSelection();
             if (sel.rangeCount > 0 && !sel.isCollapsed) {
                 const range = sel.getRangeAt(0);
-                
-                // Block checking - ensure we don't highlight the tools or inputs
                 const common = range.commonAncestorContainer;
                 if(common.nodeType === 1 && (common.closest('#highlighterTool') || common.tagName === 'TEXTAREA' || common.tagName === 'INPUT')) return;
                 if(common.nodeType === 3 && (common.parentNode.closest('#highlighterTool') || common.parentNode.tagName === 'TEXTAREA')) return;
 
-                // Recursive highlighting to handle cross-element selection
-                function highlightNode(node, range) {
-                    // Skip if node is not intersected by range
-                    if (!sel.containsNode(node, true)) return;
-
-                    if (node.nodeType === 3) { // Text Node
-                        // Determine the part of the text node that is selected
-                        let start = 0;
-                        let end = node.length;
-                        
-                        if (node === range.startContainer) start = range.startOffset;
-                        if (node === range.endContainer) end = range.endOffset;
-                        
-                        if (start < end) {
-                            const span = document.createElement("span");
-                            span.style.backgroundColor = markerColor;
-                            span.className = "highlighted";
-                            
-                            const mid = node.splitText(start);
-                            mid.splitText(end - start);
-                            const clone = mid.cloneNode(true);
-                            span.appendChild(clone);
-                            mid.parentNode.replaceChild(span, mid);
-                        }
-                    } else if (node.nodeType === 1) { // Element Node
-                        // Recurse children
-                        for (let i = 0; i < node.childNodes.length; i++) {
-                            highlightNode(node.childNodes[i], range);
-                        }
-                    }
+                document.designMode = "on";
+                if(document.queryCommandEnabled("hiliteColor")) {
+                    document.execCommand("styleWithCSS", false, true);
+                    document.execCommand("hiliteColor", false, markerColor);
                 }
-                
-                // Safe way: Extract common ancestor and traverse
-                // Simple implementation for exam context:
-                if (range.commonAncestorContainer.nodeType === 3) {
-                    // Single text node
-                    const span = document.createElement("span");
-                    span.style.backgroundColor = markerColor;
-                    range.surroundContents(span);
-                } else {
-                    // Cross-element: use safer recursive approach on the common container
-                    // Note: 'containsNode' is part of Selection, not Range.
-                    // We need to iterate nodes in range.
-                    // Simplified: Use execCommand if possible, fallback to nothing to avoid breaking DOM
-                    document.designMode = "on";
-                    if(document.queryCommandEnabled("hiliteColor")) {
-                        document.execCommand("styleWithCSS", false, true);
-                        document.execCommand("hiliteColor", false, markerColor);
-                    }
-                    document.designMode = "off";
-                }
+                document.designMode = "off";
                 sel.removeAllRanges();
             }
         });
 
-        // --- Drag Logic ---
+        // Drag Logic
         const tool = document.getElementById('highlighterTool');
         const handle = document.getElementById('hlDragHandle');
         let isDragging = false, startX, startY, initialLeft, initialTop;
@@ -316,7 +342,7 @@ const Generator = {
             document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY)+"px"; tool.style.left=(initialLeft+e.clientX-startX)+"px"; tool.style.right='auto';};
         };
 
-        // --- Security ---
+        // Security
         function lockExam(){ clearInterval(timerInterval); document.getElementById('securityModal').style.display='flex'; }
         function checkSec(){ if(!examStarted||document.body.dataset.status==='submitted')return; if(document.hidden){lockExam();} }
         document.addEventListener('visibilitychange',checkSec);
