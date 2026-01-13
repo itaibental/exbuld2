@@ -191,6 +191,11 @@
             <!-- טאבים למעבר בין חלקים -->
             <div class="tabs" id="previewTabs"></div>
 
+            <!-- אזור חדש: עריכת הנחיות לפרק בתוך התצוגה המקדימה -->
+            <div class="current-part-instructions-box">
+                <textarea id="previewPartInstructions" placeholder="הקלד כאן הנחיות כלליות לפרק זה (לדוגמה: ענה על 2 שאלות)..." oninput="App.updatePartInstructionsFromPreview(this.value)"></textarea>
+            </div>
+
             <!-- מיכל השאלות (נוצר דינמית) -->
             <div id="previewQuestionsContainer">
                 <div style="text-align: center; color: #bdc3c7; margin-top: 5vh;">
