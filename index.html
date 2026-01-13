@@ -227,7 +227,8 @@
                     טען טיוטה מקובץ
                 </button>
                 <!-- Hidden File Input -->
-                <input type="file" id="projectFileInput" accept=".json" style="display: none;" onchange="App.handleProjectLoad(event)">
+                <!-- Updated accept attribute to include .html -->
+                <input type="file" id="projectFileInput" accept=".json, .html" style="display: none;" onchange="App.handleProjectLoad(event)">
             </div>
 
             <div style="text-align: center;">
