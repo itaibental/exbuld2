@@ -1,5 +1,5 @@
 const App = {
-    activeFormatInput: null, // Track which input is being edited
+    activeFormatInput: null, 
 
     init: function() {
         UI.initElements();
@@ -8,9 +8,8 @@ const App = {
         UI.updateStats();
         this.onPartSelectChange();
         Utils.setupResizers();
-        this.setupTextFormatting(); // Initialize Formatting Tooltip
+        this.setupTextFormatting();
         
-        // Confirm Modal Handler
         const confirmBtn = document.getElementById('btnConfirmYes');
         if(confirmBtn) {
             confirmBtn.onclick = function() {
@@ -20,69 +19,148 @@ const App = {
         }
     },
 
+    // --- Save & Load Project Logic ---
+    saveProject: function() {
+        // Prepare object containing everything needed to restore
+        const projectData = {
+            state: ExamState,
+            meta: {
+                duration: UI.elements.examDurationInput.value,
+                unlockCode: UI.elements.unlockCodeInput.value,
+                teacherEmail: UI.elements.teacherEmailInput.value,
+                driveLink: UI.elements.driveFolderInput.value,
+                // Title and instructions are in ExamState, but good to double check synced
+                examTitle: UI.elements.examTitleInput.value,
+                generalInstructions: UI.elements.examInstructions.value
+            },
+            timestamp: Date.now()
+        };
+
+        const dataStr = JSON.stringify(projectData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `exam-draft-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        UI.showToast('טיוטת המבחן נשמרה בהצלחה!');
+    },
+
+    handleProjectLoad: function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const loaded = JSON.parse(e.target.result);
+                
+                // Validate
+                if (!loaded.state || !loaded.state.questions) {
+                    throw new Error("קובץ לא תקין");
+                }
+
+                // Restore ExamState
+                // We use individual assignments to keep object reference or just deep copy properties
+                ExamState.questions = loaded.state.questions;
+                ExamState.parts = loaded.state.parts;
+                ExamState.currentTab = loaded.state.parts[0]?.id || 'A';
+                ExamState.studentName = loaded.state.studentName || '';
+                ExamState.examTitle = loaded.state.examTitle || 'מבחן בגרות';
+                ExamState.logoData = loaded.state.logoData;
+                ExamState.solutionDataUrl = loaded.state.solutionDataUrl;
+                ExamState.instructions = loaded.state.instructions;
+
+                // Restore UI Elements
+                if (loaded.meta) {
+                    if (UI.elements.examDurationInput) UI.elements.examDurationInput.value = loaded.meta.duration || 90;
+                    if (UI.elements.unlockCodeInput) UI.elements.unlockCodeInput.value = loaded.meta.unlockCode || '';
+                    if (UI.elements.teacherEmailInput) UI.elements.teacherEmailInput.value = loaded.meta.teacherEmail || '';
+                    if (UI.elements.driveFolderInput) UI.elements.driveFolderInput.value = loaded.meta.driveLink || '';
+                    if (UI.elements.examTitleInput) UI.elements.examTitleInput.value = loaded.meta.examTitle || '';
+                    if (UI.elements.examInstructions) UI.elements.examInstructions.value = loaded.meta.generalInstructions || '';
+                }
+
+                // Restore specific UI parts
+                if (ExamState.logoData && UI.elements.previewLogo) {
+                    UI.elements.previewLogo.src = ExamState.logoData;
+                    UI.elements.previewLogo.style.display = 'block';
+                }
+                
+                if (UI.elements.previewExamTitle) UI.elements.previewExamTitle.textContent = ExamState.examTitle;
+                App.updateInstructionsPreview(); // Sync preview text box
+
+                // Full Render
+                UI.renderPartSelector();
+                UI.renderTabs();
+                UI.updateStats();
+                App.setTab(ExamState.currentTab);
+                
+                UI.showToast('המבחן נטען בהצלחה!');
+
+            } catch (err) {
+                console.error(err);
+                UI.showToast('שגיאה בטעינת הקובץ: ' + err.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Reset input so same file can be loaded again
+    },
+
     // --- Question Management: Edit Feature ---
     editQuestion: function(id) {
         const q = ExamState.questions.find(q => q.id === id);
         if (!q) return;
 
-        // 1. טעינת הנתונים לשדות העריכה
         UI.elements.qText.value = q.text;
         UI.elements.qPoints.value = q.points;
         UI.elements.qModelAnswer.value = q.modelAnswer || '';
         UI.elements.qVideo.value = q.videoUrl || '';
         UI.elements.qImage.value = q.imageUrl || '';
         
-        // 2. טעינת סעיפים אם יש
         ExamState.tempSubQuestions = q.subQuestions ? [...q.subQuestions] : [];
         UI.renderSubQuestionInputs();
 
-        // 3. מעבר ללשונית המתאימה
         if (q.part !== ExamState.currentTab) {
             this.setTab(q.part);
         }
-        UI.elements.qPart.value = q.part; // עדכון ה-Select
+        UI.elements.qPart.value = q.part; 
 
-        // 4. הסרת השאלה המקורית (כדי שהמשתמש ילחץ "הוסף" ויצור גרסה מעודכנת)
         ExamState.removeQuestion(id);
         UI.updateStats();
         UI.renderPreview();
         
-        // 5. גלילה למעלה לאזור העריכה והודעה למשתמש
         const rightPanel = document.getElementById('rightPanel');
         if(rightPanel) rightPanel.scrollTop = 0;
         UI.elements.qText.focus();
-        UI.showToast('השאלה נטענה לעריכה. בצע שינויים ולחץ "הוסף שאלה" לשמירה.');
+        UI.showToast('השאלה נטענה לעריכה.');
     },
 
-    // --- Text Formatting Logic (Updated placement) ---
+    // --- Text Formatting Logic ---
     setupTextFormatting: function() {
         const tooltip = document.getElementById('textFormatTooltip');
         
-        // Hide tooltip on clicking anywhere else
         document.addEventListener('mousedown', (e) => {
             if (e.target.closest('#textFormatTooltip')) return; 
-            // אל תסתיר אם לוחצים בתוך תיבת טקסט
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             tooltip.style.display = 'none';
         });
 
-        // Listen for interaction in inputs
         const handleInputInteraction = (e) => {
             const target = e.target;
             if ((target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && target.type === 'text')) && 
                 (target.closest('#rightPanel') || target.id === 'previewPartInstructions')) {
                 
                 this.activeFormatInput = target;
-                
-                // חישוב מיקום: הצמדה לחלק העליון של התיבה
                 const rect = target.getBoundingClientRect();
                 tooltip.style.left = `${rect.left}px`;
-                tooltip.style.top = `${rect.top - 40}px`; // 40px מעל התיבה
-                tooltip.style.display = 'flex'; // Use flex for layout
+                tooltip.style.top = `${rect.top - 40}px`; 
+                tooltip.style.display = 'flex'; 
             }
         };
 
-        // הצגת הסרגל כשנכנסים לפוקוס או בוחרים טקסט
         document.addEventListener('focusin', handleInputInteraction);
         document.addEventListener('mouseup', handleInputInteraction);
     },
@@ -104,12 +182,9 @@ const App = {
         const newText = text.substring(0, start) + `<${tag}>${selectedText}</${tag}>` + text.substring(end);
         el.value = newText;
 
-        // Trigger input event to update previews
         el.dispatchEvent(new Event('input', { bubbles: true }));
-        
-        // שומר על הפוקוס והמיקום
         el.focus();
-        el.setSelectionRange(start, end + tag.length * 2 + 5); // Approximate selection fix
+        el.setSelectionRange(start, end + tag.length * 2 + 5); 
     },
 
     // --- Part Management Handlers ---
@@ -120,7 +195,6 @@ const App = {
             UI.elements.partNameInput.value = part.name;
             UI.elements.partNameLabel.textContent = part.name;
             
-            // Sync both inputs
             const instructions = ExamState.instructions.parts[selectedPartId] || '';
             UI.elements.partInstructions.value = instructions;
             
@@ -132,11 +206,9 @@ const App = {
         ExamState.currentTab = partId;
         UI.renderTabs();
         
-        // Sync Inputs for the new tab
         const instructions = ExamState.instructions.parts[partId] || '';
         if(UI.elements.partInstructions) UI.elements.partInstructions.value = instructions;
         
-        // Update the middle column input via UI method
         UI.updatePartInstructionsInput(instructions);
 
         if(UI.elements.qPart.value !== partId) {
