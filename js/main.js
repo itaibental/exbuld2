@@ -30,7 +30,6 @@ const App = {
                     unlockCode: UI.elements.unlockCodeInput?.value || '',
                     teacherEmail: UI.elements.teacherEmailInput?.value || '',
                     driveLink: UI.elements.driveFolderInput?.value || '',
-                    // Title and instructions are in ExamState, but good to double check synced
                     examTitle: UI.elements.examTitleInput?.value || '',
                     generalInstructions: UI.elements.examInstructions?.value || ''
                 },
@@ -60,7 +59,23 @@ const App = {
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                const loaded = JSON.parse(e.target.result);
+                let loaded;
+                
+                // Determine file type and parse accordingly
+                if (file.name.endsWith('.html')) {
+                    // Parse HTML file to find embedded JSON data
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(e.target.result, 'text/html');
+                    const scriptTag = doc.getElementById('exam-engine-data');
+                    if (scriptTag && scriptTag.textContent) {
+                        loaded = JSON.parse(scriptTag.textContent);
+                    } else {
+                        throw new Error("לא נמצא מידע פרויקט בקובץ ה-HTML זה.");
+                    }
+                } else {
+                    // Default to JSON
+                    loaded = JSON.parse(e.target.result);
+                }
                 
                 // Validate
                 if (!loaded.state || !loaded.state.questions) {
@@ -68,7 +83,6 @@ const App = {
                 }
 
                 // Restore ExamState
-                // We use individual assignments to keep object reference or just deep copy properties
                 ExamState.questions = loaded.state.questions;
                 ExamState.parts = loaded.state.parts;
                 ExamState.currentTab = loaded.state.parts[0]?.id || 'A';
@@ -95,7 +109,7 @@ const App = {
                 }
                 
                 if (UI.elements.previewExamTitle) UI.elements.previewExamTitle.textContent = ExamState.examTitle;
-                App.updateInstructionsPreview(); // Sync preview text box
+                App.updateInstructionsPreview(); 
 
                 // Full Render
                 UI.renderPartSelector();
@@ -111,7 +125,7 @@ const App = {
             }
         };
         reader.readAsText(file);
-        event.target.value = ''; // Reset input so same file can be loaded again
+        event.target.value = ''; 
     },
 
     // --- Question Management: Edit Feature ---
