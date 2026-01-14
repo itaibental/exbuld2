@@ -37,79 +37,84 @@ const Generator = {
 
     // NEW FUNCTION: Download as DOCX
     generateAndDownloadDocx: function() {
-        // Basic HTML structure compatible with Word
-        let content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-        <head>
-            <meta charset="utf-8">
-            <title>${ExamState.examTitle}</title>
-            <style>
-                body { font-family: Arial, sans-serif; direction: rtl; }
-                .question-box { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-                .sub-q { margin-right: 20px; margin-top: 10px; }
-                .answer-space { margin-top: 10px; color: #999; }
-                img { max-width: 400px; height: auto; display: block; margin: 10px 0; }
-            </style>
-        </head>
-        <body>`;
+        try {
+            // Basic HTML structure compatible with Word
+            let content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset="utf-8">
+                <title>${ExamState.examTitle}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; direction: rtl; }
+                    .question-box { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+                    .sub-q { margin-right: 20px; margin-top: 10px; }
+                    .answer-space { margin-top: 10px; color: #999; }
+                    img { max-width: 400px; height: auto; display: block; margin: 10px 0; }
+                </style>
+            </head>
+            <body>`;
 
-        // Logo
-        if (ExamState.logoData) {
-            content += `<div style="text-align:center"><img src="${ExamState.logoData}" alt="Logo"></div>`;
-        }
-
-        // Title & Header
-        content += `<h1 style="text-align:center;">${ExamState.examTitle}</h1>`;
-        if (ExamState.instructions.general) {
-            content += `<div style="background:#f0f0f0; padding:10px; margin-bottom:20px;"><strong>הנחיות:</strong><br>${ExamState.instructions.general.replace(/\n/g, '<br>')}</div>`;
-        }
-
-        // Iterate Parts
-        ExamState.parts.forEach(part => {
-            content += `<h2>${part.name}</h2>`;
-            if (ExamState.instructions.parts[part.id]) {
-                content += `<p><em>${ExamState.instructions.parts[part.id].replace(/\n/g, '<br>')}</em></p>`;
+            // Logo
+            if (ExamState.logoData) {
+                content += `<div style="text-align:center"><img src="${ExamState.logoData}" alt="Logo"></div>`;
             }
 
-            const questions = ExamState.questions.filter(q => q.part === part.id);
-            if (questions.length === 0) {
-                content += `<p>(אין שאלות בחלק זה)</p>`;
-            } else {
-                questions.forEach((q, idx) => {
-                    content += `<div class="question-box">`;
-                    content += `<p><strong>שאלה ${idx + 1}</strong> (${q.points} נקודות)</p>`;
-                    content += `<p>${q.text.replace(/\n/g, '<br>')}</p>`;
-                    
-                    if (q.imageUrl) {
-                        content += `<img src="${q.imageUrl}" />`;
-                    }
-
-                    if (q.subQuestions && q.subQuestions.length > 0) {
-                        q.subQuestions.forEach((sq, si) => {
-                            const label = ExamState.subLabels[si] || (si + 1);
-                            content += `<div class="sub-q">
-                                <p><strong>סעיף ${label}'</strong> (${sq.points} נק'): ${sq.text}</p>
-                                <p class="answer-space">_________________________________________________<br>_________________________________________________</p>
-                            </div>`;
-                        });
-                    } else {
-                        content += `<p class="answer-space"><br>_________________________________________________<br>_________________________________________________<br>_________________________________________________</p>`;
-                    }
-                    content += `</div>`;
-                });
+            // Title & Header
+            content += `<h1 style="text-align:center;">${ExamState.examTitle}</h1>`;
+            if (ExamState.instructions.general) {
+                content += `<div style="background:#f0f0f0; padding:10px; margin-bottom:20px;"><strong>הנחיות:</strong><br>${ExamState.instructions.general.replace(/\n/g, '<br>')}</div>`;
             }
-        });
 
-        content += `</body></html>`;
+            // Iterate Parts
+            ExamState.parts.forEach(part => {
+                content += `<h2>${part.name}</h2>`;
+                if (ExamState.instructions.parts[part.id]) {
+                    content += `<p><em>${ExamState.instructions.parts[part.id].replace(/\n/g, '<br>')}</em></p>`;
+                }
 
-        // Download
-        const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${ExamState.studentName || 'מבחן'}.doc`; 
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+                const questions = ExamState.questions.filter(q => q.part === part.id);
+                if (questions.length === 0) {
+                    content += `<p>(אין שאלות בחלק זה)</p>`;
+                } else {
+                    questions.forEach((q, idx) => {
+                        content += `<div class="question-box">`;
+                        content += `<p><strong>שאלה ${idx + 1}</strong> (${q.points} נקודות)</p>`;
+                        content += `<p>${q.text.replace(/\n/g, '<br>')}</p>`;
+                        
+                        if (q.imageUrl) {
+                            content += `<img src="${q.imageUrl}" />`;
+                        }
+
+                        if (q.subQuestions && q.subQuestions.length > 0) {
+                            q.subQuestions.forEach((sq, si) => {
+                                const label = ExamState.subLabels[si] || (si + 1);
+                                content += `<div class="sub-q">
+                                    <p><strong>סעיף ${label}'</strong> (${sq.points} נק'): ${sq.text}</p>
+                                    <p class="answer-space">_________________________________________________<br>_________________________________________________</p>
+                                </div>`;
+                            });
+                        } else {
+                            content += `<p class="answer-space"><br>_________________________________________________<br>_________________________________________________<br>_________________________________________________</p>`;
+                        }
+                        content += `</div>`;
+                    });
+                }
+            });
+
+            content += `</body></html>`;
+
+            // Download
+            const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${ExamState.studentName || 'מבחן'}.doc`; 
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch(e) {
+            console.error("Docx Gen Error:", e);
+            UI.showToast("שגיאה ביצירת קובץ DOCX", "error");
+        }
     },
 
     buildStudentHTML: function(studentName, questions, instructions, examTitle, logoData, solutionDataUrl, duration, unlockCodeHash, parts, teacherEmail, driveLink, projectData) {
@@ -225,6 +230,7 @@ const Generator = {
         .color-btn.active { border-color: #333; transform: scale(1.1); box-shadow: 0 0 0 2px #333; }
         .drag-handle { cursor: move; color: #ccc; font-size: 20px; line-height: 10px; margin-bottom: 5px; user-select: none; }
         
+        /* Modals */
         #startScreen,#timesUpModal,#securityModal,#successModal{position:fixed;top:0;left:0;width:100%;height:100%;background:#2c3e50;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;}#timesUpModal,#securityModal,#successModal{display:none;}
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
         #securityModal h2, #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; }
@@ -232,7 +238,20 @@ const Generator = {
         ${embeddedProjectData}
         <div id="highlighterTool"><div class="drag-handle" id="hlDragHandle">:::</div><div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div><div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div><div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div><div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div><div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div></div>
 
-        <div id="startScreen"><h1>${examTitle}</h1><p>משך הבחינה: ${duration} דקות</p><p style="color:#e74c3c;font-weight:bold;margin-bottom:20px;">שים לב: המבחן יתבצע במסך מלא.<br>יציאה ממסך מלא או מעבר לחלון אחר ינעלו את המבחן!</p><button onclick="startExamTimer()" style="padding:15px 30px;font-size:1.5em;background:#27ae60;color:white;border:none;border-radius:10px;">התחל בחינה (מסך מלא)</button></div><div id="timerBadge">זמן: <span id="timerText">--:--</span></div><div id="timesUpModal"><h2>הזמן נגמר!</h2><button onclick="submitExam()">הגש בחינה</button></div><div id="securityModal"><h2>המבחן ננעל!</h2><p style="font-size: 1.5rem;">יצאת ממסך מלא או עברת לחלון אחר.</p><input type="password" id="teacherCodeInput" placeholder="קוד מורה לשחרור"><button onclick="unlockExam()">שחרר</button></div>
+        <div id="startScreen"><h1>${examTitle}</h1><p>משך הבחינה: ${duration} דקות</p><p style="color:#e74c3c;font-weight:bold;margin-bottom:20px;">שים לב: המבחן יתבצע במסך מלא.<br>יציאה ממסך מלא או מעבר לחלון אחר ינעלו את המבחן!</p><button onclick="startExamTimer()" style="padding:15px 30px;font-size:1.5em;background:#27ae60;color:white;border:none;border-radius:10px;">התחל בחינה (מסך מלא)</button></div><div id="timerBadge">זמן: <span id="timerText">--:--</span><span id="extraTimeLabel" style="display:none; color:red; font-size:0.8em; margin-right:5px;">(תוספת זמן)</span></div>
+        <div id="timesUpModal">
+            <h2>תם הזמן!</h2>
+            <p>זמן הבחינה המוקצב הסתיים.</p>
+            <div style="margin-top:20px;">
+                <button onclick="requestExtraTime()" style="background:#3498db; margin:10px; padding:15px 30px;">בקש תוספת זמן (מורה)</button>
+                <button onclick="submitExam()" style="background:#27ae60; margin:10px; padding:15px 30px;">הגש בחינה כעת</button>
+            </div>
+            <!-- Added Teacher Entry Button to Time's Up Screen -->
+            <div style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.3); padding-top:10px;">
+                <button onclick="enableGradingFromModal()" style="background: transparent; border: 1px solid #fff; color: #fff; padding: 10px; font-size:0.9em;">👨‍🏫 כניסת מורה (בדיקה)</button>
+            </div>
+        </div>
+        <div id="securityModal"><h2>המבחן ננעל!</h2><p style="font-size: 1.5rem;">יצאת ממסך מלא או עברת לחלון אחר.</p><input type="password" id="teacherCodeInput" placeholder="קוד מורה לשחרור"><button onclick="unlockExam()">שחרר</button></div>
         
         <div id="successModal">
             <h1>המבחן הוגש בהצלחה!</h1>
@@ -269,7 +288,12 @@ const Generator = {
             </div>
         </div>
         <script>
-        let totalTime=${duration}*60,timerInterval,examStarted=false;
+        let totalTime=${duration}*60;
+        let timerInterval;
+        let examStarted=false;
+        let isExtraTime = false;
+        let extraTimeSeconds = 0;
+
         function simpleHash(s){let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return h.toString();}
         
         window.onload = function() {
@@ -298,8 +322,51 @@ const Generator = {
             updateTimer();
         }
 
-        function runTimer(){clearInterval(timerInterval);timerInterval=setInterval(()=>{totalTime--;updateTimer();if(totalTime<=0){clearInterval(timerInterval);document.getElementById('timesUpModal').style.display='flex';}},1000);}
-        function updateTimer(){let m=Math.floor(totalTime/60),s=totalTime%60;document.getElementById('timerText').innerText=(m<10?'0'+m:m)+':'+(s<10?'0'+s:s);}
+        function runTimer(){
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isExtraTime) {
+                    totalTime--;
+                    if (totalTime <= 0) {
+                        clearInterval(timerInterval);
+                        document.getElementById('timesUpModal').style.display = 'flex';
+                    }
+                } else {
+                    extraTimeSeconds++;
+                }
+                updateTimer();
+            }, 1000);
+        }
+
+        function updateTimer(){
+            let displaySeconds = isExtraTime ? extraTimeSeconds : totalTime;
+            let m = Math.floor(displaySeconds / 60);
+            let s = displaySeconds % 60;
+            let text = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+            
+            const timerEl = document.getElementById('timerText');
+            timerEl.innerText = text;
+            
+            if (isExtraTime) {
+                timerEl.style.color = 'red';
+                document.getElementById('extraTimeLabel').style.display = 'inline';
+            } else {
+                timerEl.style.color = 'inherit';
+                document.getElementById('extraTimeLabel').style.display = 'none';
+            }
+        }
+
+        function requestExtraTime() {
+            const code = prompt('הכנס קוד מורה לאישור תוספת זמן:');
+            if (simpleHash(code) === "${unlockCodeHash}") {
+                document.getElementById('timesUpModal').style.display = 'none';
+                isExtraTime = true;
+                runTimer();
+            } else {
+                alert('קוד שגוי');
+            }
+        }
+
         function showPart(id){document.querySelectorAll('.exam-section').forEach(e=>e.classList.remove('active'));document.getElementById('part-'+id).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');}
         
         function calcTotal(){
@@ -379,6 +446,7 @@ const Generator = {
         function enableGradingFromModal() {
              if(simpleHash(prompt('הכנס קוד מורה:'))==="${unlockCodeHash}") {
                  document.getElementById('successModal').style.display='none';
+                 document.getElementById('timesUpModal').style.display='none'; // Close times up modal if open
                  enableGradingUI();
              } else { alert('קוד שגוי'); }
         }
@@ -390,10 +458,22 @@ const Generator = {
         function enableGradingUI() {
             document.querySelector('.teacher-controls').style.display='block';
             document.querySelectorAll('.grading-area').forEach(e=>e.style.display='block');
+            
+            // Enable grading inputs
             document.querySelectorAll('.grade-input, .teacher-comment').forEach(e=>e.disabled=false);
+            
+            // Enable student answer editing
+            document.querySelectorAll('.student-ans').forEach(e => {
+                e.removeAttribute('readonly');
+                e.disabled = false;
+                e.style.borderColor = '#3498db'; // Optional visual cue
+            });
+
             document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
             document.querySelector('.student-submit-area').style.display='none';
             document.body.dataset.status = 'grading';
+            
+            // Show all sections
             document.querySelectorAll('.exam-section').forEach(e=>e.style.display='block');
             document.querySelector('.tabs').style.display='none';
 
