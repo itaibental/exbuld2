@@ -30,6 +30,7 @@ const App = {
                     unlockCode: UI.elements.unlockCodeInput?.value || '',
                     teacherEmail: UI.elements.teacherEmailInput?.value || '',
                     driveLink: UI.elements.driveFolderInput?.value || '',
+                    // Title and instructions are in ExamState, but good to double check synced
                     examTitle: UI.elements.examTitleInput?.value || '',
                     generalInstructions: UI.elements.examInstructions?.value || ''
                 },
@@ -109,7 +110,7 @@ const App = {
                 }
                 
                 if (UI.elements.previewExamTitle) UI.elements.previewExamTitle.textContent = ExamState.examTitle;
-                App.updateInstructionsPreview(); 
+                App.updateInstructionsPreview(); // Sync preview text box
 
                 // Full Render
                 UI.renderPartSelector();
@@ -125,7 +126,74 @@ const App = {
             }
         };
         reader.readAsText(file);
-        event.target.value = ''; 
+        event.target.value = ''; // Reset input so same file can be loaded again
+    },
+
+    // --- New Feature: Load Submitted Exam for Viewing ---
+    handleSubmittedExamLoad: function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                // We don't parse it into the editor state.
+                // We simply open it in a new window/tab, injecting a script to bypass the timer.
+                
+                let htmlContent = e.target.result;
+                
+                // Inject script to override timer and show teacher view immediately
+                const scriptOverride = `
+                    <script>
+                        window.addEventListener('DOMContentLoaded', () => {
+                            // Stop any existing timers
+                            if(window.timerInterval) clearInterval(window.timerInterval);
+                            
+                            // Hide start screen and show main container
+                            const startScreen = document.getElementById('startScreen');
+                            const mainContainer = document.getElementById('mainContainer');
+                            const timerBadge = document.getElementById('timerBadge');
+                            
+                            if(startScreen) startScreen.style.display = 'none';
+                            if(mainContainer) mainContainer.style.filter = 'none';
+                            if(timerBadge) timerBadge.style.display = 'none';
+                            
+                            // Enable inputs for viewing (optional, maybe read-only is better)
+                            document.querySelectorAll('input, textarea').forEach(el => {
+                                // Keep them read-only if we just want to view
+                                // el.removeAttribute('readonly'); 
+                                // el.disabled = false;
+                            });
+
+                            // Try to auto-open teacher controls if possible, or just show everything
+                            const teacherControls = document.querySelector('.teacher-controls');
+                            if(teacherControls) teacherControls.style.display = 'block';
+                            
+                            // Show all sections
+                            document.querySelectorAll('.exam-section').forEach(sect => sect.style.display = 'block');
+                            const tabs = document.querySelector('.tabs');
+                            if(tabs) tabs.style.display = 'none';
+
+                            alert('מצב צפייה במבחן פתור: הטיימר נוטרל והמבחן פתוח לעיון.');
+                        });
+                    <\/script>
+                `;
+                
+                // Inject before closing body tag
+                htmlContent = htmlContent.replace('</body>', scriptOverride + '</body>');
+
+                const newWindow = window.open();
+                newWindow.document.open();
+                newWindow.document.write(htmlContent);
+                newWindow.document.close();
+                
+            } catch (err) {
+                console.error(err);
+                UI.showToast('שגיאה בטעינת הקובץ: ' + err.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
     },
 
     // --- Question Management: Edit Feature ---
