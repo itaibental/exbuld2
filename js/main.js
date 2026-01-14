@@ -22,6 +22,7 @@ const App = {
     // --- Save & Load Project Logic ---
     saveProject: function() {
         try {
+            // Prepare object containing everything needed to restore
             const projectData = {
                 state: ExamState,
                 meta: {
@@ -29,6 +30,7 @@ const App = {
                     unlockCode: UI.elements.unlockCodeInput?.value || '',
                     teacherEmail: UI.elements.teacherEmailInput?.value || '',
                     driveLink: UI.elements.driveFolderInput?.value || '',
+                    // Title and instructions are in ExamState, but good to double check synced
                     examTitle: UI.elements.examTitleInput?.value || '',
                     generalInstructions: UI.elements.examInstructions?.value || ''
                 },
@@ -60,7 +62,9 @@ const App = {
             try {
                 let loaded;
                 
+                // Determine file type and parse accordingly
                 if (file.name.endsWith('.html')) {
+                    // Parse HTML file to find embedded JSON data
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(e.target.result, 'text/html');
                     const scriptTag = doc.getElementById('exam-engine-data');
@@ -70,13 +74,16 @@ const App = {
                         throw new Error("לא נמצא מידע פרויקט בקובץ ה-HTML זה.");
                     }
                 } else {
+                    // Default to JSON
                     loaded = JSON.parse(e.target.result);
                 }
                 
+                // Validate
                 if (!loaded.state || !loaded.state.questions) {
                     throw new Error("קובץ לא תקין");
                 }
 
+                // Restore ExamState
                 ExamState.questions = loaded.state.questions;
                 ExamState.parts = loaded.state.parts;
                 ExamState.currentTab = loaded.state.parts[0]?.id || 'A';
@@ -86,6 +93,7 @@ const App = {
                 ExamState.solutionDataUrl = loaded.state.solutionDataUrl;
                 ExamState.instructions = loaded.state.instructions;
 
+                // Restore UI Elements
                 if (loaded.meta) {
                     if (UI.elements.examDurationInput) UI.elements.examDurationInput.value = loaded.meta.duration || 90;
                     if (UI.elements.unlockCodeInput) UI.elements.unlockCodeInput.value = loaded.meta.unlockCode || '';
@@ -95,19 +103,20 @@ const App = {
                     if (UI.elements.examInstructions) UI.elements.examInstructions.value = loaded.meta.generalInstructions || '';
                 }
 
+                // Restore specific UI parts
                 if (ExamState.logoData && UI.elements.previewLogo) {
                     UI.elements.previewLogo.src = ExamState.logoData;
                     UI.elements.previewLogo.style.display = 'block';
                 }
                 
                 if (UI.elements.previewExamTitle) UI.elements.previewExamTitle.textContent = ExamState.examTitle;
-                App.updateInstructionsPreview(); 
+                App.updateInstructionsPreview(); // Sync preview text box
 
+                // Full Render
                 UI.renderPartSelector();
                 UI.renderTabs();
                 UI.updateStats();
                 App.setTab(ExamState.currentTab);
-                UI.renderPreview(); // Ensure forced refresh
                 
                 UI.showToast('המבחן נטען בהצלחה!');
 
@@ -117,10 +126,10 @@ const App = {
             }
         };
         reader.readAsText(file);
-        event.target.value = ''; 
+        event.target.value = ''; // Reset input so same file can be loaded again
     },
 
-    // --- New Feature: Load Submitted Exam for Viewing (Corrected) ---
+    // --- New Feature: Load Submitted Exam for Viewing ---
     handleSubmittedExamLoad: function(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -133,43 +142,56 @@ const App = {
                 // Script to neutralize timer and unlock everything
                 const scriptOverride = `
                     <script>
-                        // Immediate override
+                        // Immediate override on load
                         window.addEventListener('DOMContentLoaded', () => {
-                            // Kill Timer
+                            // 1. Kill Timer & Intervals
                             if(window.timerInterval) clearInterval(window.timerInterval);
                             window.timerInterval = null;
                             
-                            // Remove Blockers
+                            // 2. Neutralize Security Functions (Prevent auto-lock)
+                            window.lockExam = function() { console.log('Lock disabled in review mode'); };
+                            window.checkSec = function() {};
+                            
+                            // 3. Remove Blockers / Modals
                             const modals = ['startScreen', 'timesUpModal', 'securityModal', 'successModal'];
                             modals.forEach(id => {
                                 const el = document.getElementById(id);
                                 if(el) el.style.display = 'none';
                             });
 
-                            // Show Content
+                            // 4. Hide Timer Badge completely
+                            const timerBadge = document.getElementById('timerBadge');
+                            if(timerBadge) timerBadge.style.display = 'none';
+
+                            // 5. Show Content & Remove Blur
                             const mainContainer = document.getElementById('mainContainer');
                             if(mainContainer) mainContainer.style.filter = 'none';
                             
+                            // 6. Show Teacher Controls
                             const teacherControls = document.querySelector('.teacher-controls');
                             if(teacherControls) teacherControls.style.display = 'block';
                             
-                            // Show all sections
+                            // 7. Show all sections (Flatten view)
                             document.querySelectorAll('.exam-section').forEach(sect => sect.style.display = 'block');
                             const tabs = document.querySelector('.tabs');
                             if(tabs) tabs.style.display = 'none';
                             
-                            // Enable Inputs
+                            // 8. Enable Inputs for Grading
                             document.querySelectorAll('.grade-input, .teacher-comment, .student-ans').forEach(el => {
                                 el.disabled = false;
                                 el.removeAttribute('readonly');
+                                if(el.classList.contains('student-ans')) {
+                                    el.style.borderColor = '#3498db'; // Highlight student answers
+                                }
                             });
                             
-                            document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
+                            // 9. Show Model Answers
+                            document.querySelectorAll('.model-answer-secret').forEach(e => e.style.display='block');
                         });
                     <\/script>
                 `;
                 
-                // Inject script at the end of body
+                // Inject script before closing body tag
                 htmlContent = htmlContent.replace('</body>', scriptOverride + '</body>');
 
                 // Load into Iframe Modal
