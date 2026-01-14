@@ -214,7 +214,7 @@
         <div class="resizer resizer-left-col" id="dragHandleLeft"></div>
 
         <div class="scroll-content">
-            <!-- אזור חדש לשמירה וטעינה -->
+            <!-- אזור שמירה וטעינה קיים -->
             <div style="margin-top: 5vh; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3vh; margin-bottom: 3vh;">
                 <h3>💾 שמירה וטעינה</h3>
                 <p style="color: #bdc3c7; font-size: 0.85rem; margin-bottom: 2vh;">שמור את העבודה כקובץ כדי להמשיך לערוך אחר כך.</p>
@@ -226,9 +226,18 @@
                 <button class="btn-download" style="background: #2c3e50; border: 1px solid #34495e;" onclick="document.getElementById('projectFileInput').click()">
                     טען טיוטה מקובץ
                 </button>
-                <!-- Hidden File Input -->
-                <!-- Updated accept attribute to include .html -->
                 <input type="file" id="projectFileInput" accept=".json, .html" style="display: none;" onchange="App.handleProjectLoad(event)">
+            </div>
+
+            <!-- אזור חדש: טעינת מבחן פתור לצפייה -->
+            <div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3vh; margin-bottom: 3vh;">
+                <h3>👁️ צפייה במבחן פתור</h3>
+                <p style="color: #bdc3c7; font-size: 0.85rem; margin-bottom: 2vh;">טען קובץ HTML שהוגש ע"י תלמיד לצפייה מלאה ללא טיימר.</p>
+                
+                <button class="btn-download" style="background: #8e44ad; border: 1px solid #732d91;" onclick="document.getElementById('submittedExamInput').click()">
+                    טען מבחן פתור
+                </button>
+                <input type="file" id="submittedExamInput" accept=".html" style="display: none;" onchange="App.handleSubmittedExamLoad(event)">
             </div>
 
             <div style="text-align: center;">
