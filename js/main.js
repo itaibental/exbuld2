@@ -22,7 +22,6 @@ const App = {
     // --- Save & Load Project Logic ---
     saveProject: function() {
         try {
-            // Prepare object containing everything needed to restore
             const projectData = {
                 state: ExamState,
                 meta: {
@@ -30,7 +29,6 @@ const App = {
                     unlockCode: UI.elements.unlockCodeInput?.value || '',
                     teacherEmail: UI.elements.teacherEmailInput?.value || '',
                     driveLink: UI.elements.driveFolderInput?.value || '',
-                    // Title and instructions are in ExamState, but good to double check synced
                     examTitle: UI.elements.examTitleInput?.value || '',
                     generalInstructions: UI.elements.examInstructions?.value || ''
                 },
@@ -62,9 +60,7 @@ const App = {
             try {
                 let loaded;
                 
-                // Determine file type and parse accordingly
                 if (file.name.endsWith('.html')) {
-                    // Parse HTML file to find embedded JSON data
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(e.target.result, 'text/html');
                     const scriptTag = doc.getElementById('exam-engine-data');
@@ -74,16 +70,13 @@ const App = {
                         throw new Error("לא נמצא מידע פרויקט בקובץ ה-HTML זה.");
                     }
                 } else {
-                    // Default to JSON
                     loaded = JSON.parse(e.target.result);
                 }
                 
-                // Validate
                 if (!loaded.state || !loaded.state.questions) {
                     throw new Error("קובץ לא תקין");
                 }
 
-                // Restore ExamState
                 ExamState.questions = loaded.state.questions;
                 ExamState.parts = loaded.state.parts;
                 ExamState.currentTab = loaded.state.parts[0]?.id || 'A';
@@ -93,7 +86,6 @@ const App = {
                 ExamState.solutionDataUrl = loaded.state.solutionDataUrl;
                 ExamState.instructions = loaded.state.instructions;
 
-                // Restore UI Elements
                 if (loaded.meta) {
                     if (UI.elements.examDurationInput) UI.elements.examDurationInput.value = loaded.meta.duration || 90;
                     if (UI.elements.unlockCodeInput) UI.elements.unlockCodeInput.value = loaded.meta.unlockCode || '';
@@ -103,20 +95,19 @@ const App = {
                     if (UI.elements.examInstructions) UI.elements.examInstructions.value = loaded.meta.generalInstructions || '';
                 }
 
-                // Restore specific UI parts
                 if (ExamState.logoData && UI.elements.previewLogo) {
                     UI.elements.previewLogo.src = ExamState.logoData;
                     UI.elements.previewLogo.style.display = 'block';
                 }
                 
                 if (UI.elements.previewExamTitle) UI.elements.previewExamTitle.textContent = ExamState.examTitle;
-                App.updateInstructionsPreview(); // Sync preview text box
+                App.updateInstructionsPreview(); 
 
-                // Full Render
                 UI.renderPartSelector();
                 UI.renderTabs();
                 UI.updateStats();
                 App.setTab(ExamState.currentTab);
+                UI.renderPreview(); // Ensure forced refresh
                 
                 UI.showToast('המבחן נטען בהצלחה!');
 
@@ -126,10 +117,10 @@ const App = {
             }
         };
         reader.readAsText(file);
-        event.target.value = ''; // Reset input so same file can be loaded again
+        event.target.value = ''; 
     },
 
-    // --- New Feature: Load Submitted Exam for Viewing ---
+    // --- New Feature: Load Submitted Exam for Viewing (Corrected) ---
     handleSubmittedExamLoad: function(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -137,35 +128,28 @@ const App = {
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                // We don't parse it into the editor state.
-                // We simply open it in a new window/tab, injecting a script to bypass the timer.
-                
                 let htmlContent = e.target.result;
                 
-                // Inject script to override timer and show teacher view immediately
+                // Script to neutralize timer and unlock everything
                 const scriptOverride = `
                     <script>
+                        // Immediate override
                         window.addEventListener('DOMContentLoaded', () => {
-                            // Stop any existing timers
+                            // Kill Timer
                             if(window.timerInterval) clearInterval(window.timerInterval);
+                            window.timerInterval = null;
                             
-                            // Hide start screen and show main container
-                            const startScreen = document.getElementById('startScreen');
-                            const mainContainer = document.getElementById('mainContainer');
-                            const timerBadge = document.getElementById('timerBadge');
-                            
-                            if(startScreen) startScreen.style.display = 'none';
-                            if(mainContainer) mainContainer.style.filter = 'none';
-                            if(timerBadge) timerBadge.style.display = 'none';
-                            
-                            // Enable inputs for viewing (optional, maybe read-only is better)
-                            document.querySelectorAll('input, textarea').forEach(el => {
-                                // Keep them read-only if we just want to view
-                                // el.removeAttribute('readonly'); 
-                                // el.disabled = false;
+                            // Remove Blockers
+                            const modals = ['startScreen', 'timesUpModal', 'securityModal', 'successModal'];
+                            modals.forEach(id => {
+                                const el = document.getElementById(id);
+                                if(el) el.style.display = 'none';
                             });
 
-                            // Try to auto-open teacher controls if possible, or just show everything
+                            // Show Content
+                            const mainContainer = document.getElementById('mainContainer');
+                            if(mainContainer) mainContainer.style.filter = 'none';
+                            
                             const teacherControls = document.querySelector('.teacher-controls');
                             if(teacherControls) teacherControls.style.display = 'block';
                             
@@ -173,19 +157,27 @@ const App = {
                             document.querySelectorAll('.exam-section').forEach(sect => sect.style.display = 'block');
                             const tabs = document.querySelector('.tabs');
                             if(tabs) tabs.style.display = 'none';
-
-                            alert('מצב צפייה במבחן פתור: הטיימר נוטרל והמבחן פתוח לעיון.');
+                            
+                            // Enable Inputs
+                            document.querySelectorAll('.grade-input, .teacher-comment, .student-ans').forEach(el => {
+                                el.disabled = false;
+                                el.removeAttribute('readonly');
+                            });
+                            
+                            document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
                         });
                     <\/script>
                 `;
                 
-                // Inject before closing body tag
+                // Inject script at the end of body
                 htmlContent = htmlContent.replace('</body>', scriptOverride + '</body>');
 
-                const newWindow = window.open();
-                newWindow.document.open();
-                newWindow.document.write(htmlContent);
-                newWindow.document.close();
+                // Load into Iframe Modal
+                const modal = document.getElementById('viewExamModal');
+                const iframe = document.getElementById('viewExamFrame');
+                
+                modal.style.display = 'flex';
+                iframe.srcdoc = htmlContent;
                 
             } catch (err) {
                 console.error(err);
