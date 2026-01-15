@@ -4,7 +4,7 @@ const UI = {
     initElements: function() {
         const idList = [
             'qPart', 'partNameInput', 'partInstructions', 'partNameLabel', 
-            'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qImage', 
+            'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qEmbed', 'qImage', // Added qEmbed
             'previewQuestionsContainer', 'statsContainer', 'totalPoints', 
             'studentNameInput', 'filenamePreview', 'previewTabs', 
             'examInstructions', 'previewInstructionsBox', 'examTitleInput', 
@@ -108,11 +108,17 @@ const UI = {
 
         const questionsHTML = filtered.map((q, idx) => {
             let mediaHTML = '';
+            
+            // Prioritize Embed Code
+            if (q.embedCode) {
+                mediaHTML += `<div class="video-wrapper"><div class="video-shield"></div>${q.embedCode}</div>`;
+            } else {
+                const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
+                if (embedSrc) mediaHTML += `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0"></iframe></div>`;
+            }
+
             const imgSrc = Utils.getImageSrc(q.imageUrl);
             if (imgSrc) mediaHTML += `<div class="image-wrapper"><img src="${imgSrc}" alt="Question Image"></div>`;
-
-            const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
-            if (embedSrc) mediaHTML += `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0"></iframe></div>`;
 
             let subQuestionsHTML = '';
             let modelAnsPreview = '';
