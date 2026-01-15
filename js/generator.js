@@ -7,7 +7,20 @@ const Generator = {
         const teacherEmail = UI.elements.teacherEmailInput.value.trim();
         const driveLink = UI.elements.driveFolderInput.value.trim();
 
-        const htmlContent = this.buildStudentHTML(name, ExamState.questions, ExamState.instructions, ExamState.examTitle, ExamState.logoData, ExamState.solutionDataUrl, duration, unlockCodeHash, ExamState.parts, teacherEmail, driveLink);
+        const projectData = {
+            state: ExamState,
+            meta: {
+                duration: UI.elements.examDurationInput.value,
+                unlockCode: UI.elements.unlockCodeInput.value,
+                teacherEmail: UI.elements.teacherEmailInput.value,
+                driveLink: UI.elements.driveFolderInput.value,
+                examTitle: UI.elements.examTitleInput.value,
+                generalInstructions: UI.elements.examInstructions.value
+            },
+            timestamp: Date.now()
+        };
+
+        const htmlContent = this.buildStudentHTML(name, ExamState.questions, ExamState.instructions, ExamState.examTitle, ExamState.logoData, ExamState.solutionDataUrl, duration, unlockCodeHash, ExamState.parts, teacherEmail, driveLink, projectData);
         
         const blob = new Blob([htmlContent], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
@@ -24,7 +37,6 @@ const Generator = {
     // NEW FUNCTION: Download as DOCX
     generateAndDownloadDocx: function() {
         try {
-            // Basic HTML structure compatible with Word
             let content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head>
                 <meta charset="utf-8">
@@ -39,18 +51,15 @@ const Generator = {
             </head>
             <body>`;
 
-            // Logo
             if (ExamState.logoData) {
                 content += `<div style="text-align:center"><img src="${ExamState.logoData}" alt="Logo"></div>`;
             }
 
-            // Title & Header
             content += `<h1 style="text-align:center;">${ExamState.examTitle}</h1>`;
             if (ExamState.instructions.general) {
                 content += `<div style="background:#f0f0f0; padding:10px; margin-bottom:20px;"><strong>הנחיות:</strong><br>${ExamState.instructions.general.replace(/\n/g, '<br>')}</div>`;
             }
 
-            // Iterate Parts
             ExamState.parts.forEach(part => {
                 content += `<h2>${part.name}</h2>`;
                 if (ExamState.instructions.parts[part.id]) {
@@ -88,7 +97,6 @@ const Generator = {
 
             content += `</body></html>`;
 
-            // Download
             const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -119,10 +127,18 @@ const Generator = {
                     const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
                     let vid = '';
                     
-                    // Priority to Embed Code
+                    // Priority 1: Embed Code
                     if(q.embedCode) {
                         vid = `<div class="video-wrapper"><div class="video-shield"></div>${q.embedCode}</div>`;
-                    } else if (embedSrc) {
+                    } 
+                    // Priority 2: HTML5 Video File
+                    else if (Utils.isHTML5Video(q.videoUrl)) {
+                        vid = `<div class="video-wrapper" style="padding-bottom:0; height:auto; background:black;">
+                            <video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
+                        </div>`;
+                    }
+                    // Priority 3: Iframe Link
+                    else if (embedSrc) {
                         vid = `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>`;
                     }
 
@@ -133,7 +149,6 @@ const Generator = {
                     let gradingHTML = '';
                     let modelAnsHtml = '';
 
-                    // בניית HTML לשאלה עם סעיפים
                     if (q.subQuestions && q.subQuestions.length > 0) {
                         interactionHTML = q.subQuestions.map((sq, si) => {
                             const label = ExamState.subLabels[si] || (si + 1);
@@ -157,7 +172,6 @@ const Generator = {
                             </div>`;
                         }).join('');
                     } else {
-                        // בניית HTML לשאלה רגילה
                         modelAnsHtml = q.modelAnswer ? `<div class="model-answer-secret" style="display:none; margin-top:15px; background:#fff3cd; color:#856404; padding:10px; border-radius:5px; border:1px solid #ffeeba;"><strong>🔑 תשובה לדוגמא (למורה):</strong><br><div style="white-space:pre-wrap; margin-top:5px;" id="model-ans-text-${q.id}" class="model-ans-text-content">${q.modelAnswer}</div></div>` : '';
                         interactionHTML = `<div class="answer-area"><label>תשובה:</label><textarea class="student-ans" id="student-ans-${q.id}" placeholder="כתוב את תשובתך כאן..." onpaste="return false;"></textarea></div>`;
                         gradingHTML = `
@@ -192,7 +206,6 @@ const Generator = {
         const globalInstructionsHTML = instructions.general ? `<div class="instructions-box global-instructions"><h3>הנחיות כלליות</h3><div class="instructions-text">${instructions.general}</div></div>` : '';
         const logoHTML = logoData ? `<img src="${logoData}" alt="Logo" class="school-logo">` : '';
 
-        // הטמעת נתוני הפרויקט לשחזור
         const embeddedProjectData = projectData ? `<script type="application/json" id="exam-engine-data">${JSON.stringify(projectData).replace(/<\/script>/g, '<\\/script>')}</script>` : '';
 
         return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>מבחן - ${studentName}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap"><style>
@@ -209,7 +222,7 @@ const Generator = {
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
         
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .video-wrapper iframe, .video-wrapper object, .video-wrapper embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
         .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; }
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
@@ -442,6 +455,7 @@ const Generator = {
         function enableGradingFromModal() {
              if(simpleHash(prompt('הכנס קוד מורה:'))==="${unlockCodeHash}") {
                  document.getElementById('successModal').style.display='none';
+                 document.getElementById('timesUpModal').style.display='none'; // Close times up modal if open
                  enableGradingUI();
              } else { alert('קוד שגוי'); }
         }
@@ -453,10 +467,22 @@ const Generator = {
         function enableGradingUI() {
             document.querySelector('.teacher-controls').style.display='block';
             document.querySelectorAll('.grading-area').forEach(e=>e.style.display='block');
+            
+            // Enable grading inputs
             document.querySelectorAll('.grade-input, .teacher-comment').forEach(e=>e.disabled=false);
+            
+            // Enable student answer editing
+            document.querySelectorAll('.student-ans').forEach(e => {
+                e.removeAttribute('readonly');
+                e.disabled = false;
+                e.style.borderColor = '#3498db'; // Optional visual cue
+            });
+
             document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
             document.querySelector('.student-submit-area').style.display='none';
             document.body.dataset.status = 'grading';
+            
+            // Show all sections
             document.querySelectorAll('.exam-section').forEach(e=>e.style.display='block');
             document.querySelector('.tabs').style.display='none';
 
