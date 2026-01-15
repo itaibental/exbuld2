@@ -7,21 +7,7 @@ const Generator = {
         const teacherEmail = UI.elements.teacherEmailInput.value.trim();
         const driveLink = UI.elements.driveFolderInput.value.trim();
 
-        // 1. יצירת אובייקט הנתונים המלא לשחזור (זהה ל-saveProject)
-        const projectData = {
-            state: ExamState,
-            meta: {
-                duration: UI.elements.examDurationInput.value,
-                unlockCode: UI.elements.unlockCodeInput.value,
-                teacherEmail: UI.elements.teacherEmailInput.value,
-                driveLink: UI.elements.driveFolderInput.value,
-                examTitle: UI.elements.examTitleInput.value,
-                generalInstructions: UI.elements.examInstructions.value
-            },
-            timestamp: Date.now()
-        };
-
-        const htmlContent = this.buildStudentHTML(name, ExamState.questions, ExamState.instructions, ExamState.examTitle, ExamState.logoData, ExamState.solutionDataUrl, duration, unlockCodeHash, ExamState.parts, teacherEmail, driveLink, projectData);
+        const htmlContent = this.buildStudentHTML(name, ExamState.questions, ExamState.instructions, ExamState.examTitle, ExamState.logoData, ExamState.solutionDataUrl, duration, unlockCodeHash, ExamState.parts, teacherEmail, driveLink);
         
         const blob = new Blob([htmlContent], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
@@ -131,7 +117,15 @@ const Generator = {
             } else {
                 qHtml = partQuestions.map((q, qIdx) => {
                     const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
-                    let vid = embedSrc ? `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0"></iframe></div>` : '';
+                    let vid = '';
+                    
+                    // Priority to Embed Code
+                    if(q.embedCode) {
+                        vid = `<div class="video-wrapper"><div class="video-shield"></div>${q.embedCode}</div>`;
+                    } else if (embedSrc) {
+                        vid = `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>`;
+                    }
+
                     const imgSrc = Utils.getImageSrc(q.imageUrl);
                     let img = imgSrc ? `<div class="image-wrapper"><img src="${imgSrc}" alt="Question Image"></div>` : '';
 
@@ -139,6 +133,7 @@ const Generator = {
                     let gradingHTML = '';
                     let modelAnsHtml = '';
 
+                    // בניית HTML לשאלה עם סעיפים
                     if (q.subQuestions && q.subQuestions.length > 0) {
                         interactionHTML = q.subQuestions.map((sq, si) => {
                             const label = ExamState.subLabels[si] || (si + 1);
@@ -162,6 +157,7 @@ const Generator = {
                             </div>`;
                         }).join('');
                     } else {
+                        // בניית HTML לשאלה רגילה
                         modelAnsHtml = q.modelAnswer ? `<div class="model-answer-secret" style="display:none; margin-top:15px; background:#fff3cd; color:#856404; padding:10px; border-radius:5px; border:1px solid #ffeeba;"><strong>🔑 תשובה לדוגמא (למורה):</strong><br><div style="white-space:pre-wrap; margin-top:5px;" id="model-ans-text-${q.id}" class="model-ans-text-content">${q.modelAnswer}</div></div>` : '';
                         interactionHTML = `<div class="answer-area"><label>תשובה:</label><textarea class="student-ans" id="student-ans-${q.id}" placeholder="כתוב את תשובתך כאן..." onpaste="return false;"></textarea></div>`;
                         gradingHTML = `
@@ -213,7 +209,7 @@ const Generator = {
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
         
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        .video-wrapper iframe, .video-wrapper object, .video-wrapper embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
         .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; }
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
@@ -446,7 +442,6 @@ const Generator = {
         function enableGradingFromModal() {
              if(simpleHash(prompt('הכנס קוד מורה:'))==="${unlockCodeHash}") {
                  document.getElementById('successModal').style.display='none';
-                 document.getElementById('timesUpModal').style.display='none'; // Close times up modal if open
                  enableGradingUI();
              } else { alert('קוד שגוי'); }
         }
@@ -458,22 +453,10 @@ const Generator = {
         function enableGradingUI() {
             document.querySelector('.teacher-controls').style.display='block';
             document.querySelectorAll('.grading-area').forEach(e=>e.style.display='block');
-            
-            // Enable grading inputs
             document.querySelectorAll('.grade-input, .teacher-comment').forEach(e=>e.disabled=false);
-            
-            // Enable student answer editing
-            document.querySelectorAll('.student-ans').forEach(e => {
-                e.removeAttribute('readonly');
-                e.disabled = false;
-                e.style.borderColor = '#3498db'; // Optional visual cue
-            });
-
             document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
             document.querySelector('.student-submit-area').style.display='none';
             document.body.dataset.status = 'grading';
-            
-            // Show all sections
             document.querySelectorAll('.exam-section').forEach(e=>e.style.display='block');
             document.querySelector('.tabs').style.display='none';
 
