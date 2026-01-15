@@ -1,10 +1,10 @@
 const UI = {
-    elements: {}, // Will be populated on init
+    elements: {}, 
     
     initElements: function() {
         const idList = [
             'qPart', 'partNameInput', 'partInstructions', 'partNameLabel', 
-            'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qEmbed', 'qImage', // Added qEmbed
+            'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qEmbed', 'qImage', 
             'previewQuestionsContainer', 'statsContainer', 'totalPoints', 
             'studentNameInput', 'filenamePreview', 'previewTabs', 
             'examInstructions', 'previewInstructionsBox', 'examTitleInput', 
@@ -25,7 +25,7 @@ const UI = {
         toast.className = `toast ${type}`;
         toast.textContent = message;
         this.elements.toastContainer.appendChild(toast);
-        void toast.offsetWidth; // Trigger reflow
+        void toast.offsetWidth;
         toast.classList.add('visible');
         setTimeout(() => {
             toast.classList.remove('visible');
@@ -109,10 +109,18 @@ const UI = {
         const questionsHTML = filtered.map((q, idx) => {
             let mediaHTML = '';
             
-            // Prioritize Embed Code
+            // 1. Embed Code
             if (q.embedCode) {
                 mediaHTML += `<div class="video-wrapper"><div class="video-shield"></div>${q.embedCode}</div>`;
-            } else {
+            } 
+            // 2. HTML5 Video (New)
+            else if (Utils.isHTML5Video(q.videoUrl)) {
+                mediaHTML += `<div class="video-wrapper" style="padding-bottom:0; height:auto; background:black;">
+                    <video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
+                </div>`;
+            }
+            // 3. Iframe Embed (YouTube/Drive)
+            else {
                 const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
                 if (embedSrc) mediaHTML += `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0"></iframe></div>`;
             }
@@ -174,7 +182,6 @@ const UI = {
             list.appendChild(row);
         });
 
-        // Update main points and visibility
         if (ExamState.tempSubQuestions.length > 0) {
             const total = ExamState.tempSubQuestions.reduce((acc, curr) => acc + (curr.points || 0), 0);
             this.elements.qPoints.value = total;
