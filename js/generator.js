@@ -87,24 +87,24 @@ const Generator = {
                     let vidId = `vid-${q.id}`;
                     
                     if(q.embedCode) { 
-                        // Strip allowfullscreen from embed code to prevent students from breaking out
                         let safeEmbed = q.embedCode.replace(/allowfullscreen/gi, '');
+                        if (!safeEmbed.includes('allow=')) {
+                             safeEmbed = safeEmbed.replace('<iframe', '<iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"');
+                        }
                         vid = `<div class="media-container embed-container" id="${vidId}">${safeEmbed}</div>`; 
                     } 
                     else if (Utils.isHTML5Video(q.videoUrl)) { 
-                        // Add controlsList="nofullscreen" to native video player
-                        vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;"><video controls controlsList="nofullscreen nodownload" src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video></div>`; 
+                        vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;"><video controls playsinline controlsList="nofullscreen nodownload" src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video></div>`; 
                     }
                     else if (embedSrc) { 
-                        // Iframe without allowfullscreen attribute
                         vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`; 
                     }
 
-                    // Wrap video in resizable container
+                    // שינוי: הוספת "ידית" פינתית לגרירה במקום פס צדדי
                     if(vid) {
                         vid = `<div class="resizable-media" id="res-${vidId}" style="width:100%;">
                                  ${vid}
-                                 <div class="resize-grip" title="גרור לשינוי גודל" onmousedown="initResize(event, 'res-${vidId}')">||</div>
+                                 <div class="resize-handle" title="גרור לשינוי גודל" onmousedown="initResize(event, 'res-${vidId}')"></div>
                                </div>`;
                     }
 
@@ -146,6 +146,7 @@ const Generator = {
         .exam-section.active{display:block;}
         .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; display: block !important; width: 100%; box-sizing: border-box; }
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
+        
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
         .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; }
@@ -153,11 +154,13 @@ const Generator = {
         .embed-container iframe { max-width: 100%; }
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
+        
         .teacher-controls { background: #fdf2e9; padding: 15px; border: 1px solid #f39c12; border-radius: 8px; margin-bottom: 20px; }
         .grading-area { display: none; margin-top: 15px; background: #fafafa; padding: 10px; border-top: 2px solid #bdc3c7; }
         .grade-input { width: 60px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
         .teacher-comment { background: #fff; }
         .model-answer-secret { margin-top: 10px; border: 1px dashed #f39c12; padding: 10px; background: #fffdf5; border-radius: 4px; font-size: 0.9em; color: #555; }
+        
         #highlighterTool { position: fixed; top: 150px; right: 20px; width: 50px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 30px; padding: 15px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10000; border: 1px solid #ddd; transition: opacity 0.3s; }
         .color-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; }
         .color-btn:hover { transform: scale(1.2); }
@@ -167,10 +170,21 @@ const Generator = {
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
         #securityModal h2, #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; }
         
-        /* Resizable Media CSS */
+        /* Updated Resizable Media CSS - Corner Grip */
         .resizable-media { position: relative; margin: 20px 0; max-width: 100%; }
-        .resize-grip { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 15px; height: 50px; background-color: rgba(52, 152, 219, 0.7); cursor: col-resize; z-index: 20; border-radius: 0 4px 4px 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; opacity: 0.5; transition: opacity 0.2s; }
-        .resizable-media:hover .resize-grip { opacity: 1; }
+        .resize-handle { 
+            position: absolute; 
+            left: 0; 
+            bottom: 0; 
+            width: 30px; 
+            height: 30px; 
+            cursor: sw-resize; 
+            z-index: 20; 
+            background: linear-gradient(45deg, rgba(52, 152, 219, 1) 50%, transparent 50%); 
+            opacity: 0.5; 
+            transition: opacity 0.2s;
+        }
+        .resize-handle:hover { opacity: 1; }
         </style></head><body>
         ${embeddedProjectData}
         <div id="highlighterTool"><div class="drag-handle" id="hlDragHandle">:::</div><div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div><div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div><div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div><div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div><div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div></div>
@@ -314,25 +328,39 @@ const Generator = {
             if(display) display.innerText = t;
         }
         
-        // Drag Resize Logic
+        // Drag Resize Logic (Corner Grip)
         let startX, startWidth, resizableEl;
         function initResize(e, id) {
             e.preventDefault();
             resizableEl = document.getElementById(id);
             startX = e.clientX;
             startWidth = resizableEl.offsetWidth;
+            
+            // Disable pointer events on iframe during drag to prevent capturing
+            const iframe = resizableEl.querySelector('iframe');
+            if(iframe) iframe.style.pointerEvents = 'none';
+            
             document.addEventListener('mousemove', doResize);
             document.addEventListener('mouseup', stopResize);
         }
         function doResize(e) {
-            // RTL: Dragging left (decreasing clientX) increases width
-            const dx = startX - e.clientX;
+            // RTL: Handle at bottom-left. Dragging left increases width (smaller X)
+            // But wait, in RTL flow, dragging left actually means extending the element to the left if it's anchored right?
+            // Actually, in standard CSS layout, width grows to the left in RTL if direction is handled, 
+            // but standard 'width' usually grows right in DOM flow. 
+            // Let's assume standard behavior: moving mouse LEFT (negative dx) should INCREASE width if handle is on left.
+            
+            const dx = startX - e.clientX; // positive if moved left
             const newWidth = startWidth + dx;
+            
             if(newWidth > 200 && newWidth <= resizableEl.parentElement.offsetWidth) {
                 resizableEl.style.width = newWidth + 'px';
             }
         }
         function stopResize() {
+            const iframe = resizableEl.querySelector('iframe');
+            if(iframe) iframe.style.pointerEvents = 'auto';
+            
             document.removeEventListener('mousemove', doResize);
             document.removeEventListener('mouseup', stopResize);
         }
