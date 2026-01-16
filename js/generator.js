@@ -51,7 +51,12 @@ const Generator = {
                 if (questions.length === 0) { content += `<p>(אין שאלות בחלק זה)</p>`; } else {
                     questions.forEach((q, idx) => {
                         content += `<div class="question-box"><p><strong>שאלה ${idx + 1}</strong> (${q.points} נקודות)</p><p>${q.text.replace(/\n/g, '<br>')}</p>`;
-                        if (q.imageUrl) { content += `<img src="${q.imageUrl}" />`; }
+                        
+                        // FIX: Use Utils.getImageSrc to ensure correct URL for Word
+                        if (q.imageUrl) { 
+                            content += `<img src="${Utils.getImageSrc(q.imageUrl)}" />`; 
+                        }
+                        
                         if (q.subQuestions && q.subQuestions.length > 0) {
                             q.subQuestions.forEach((sq, si) => {
                                 const label = ExamState.subLabels[si] || (si + 1);
@@ -87,14 +92,14 @@ const Generator = {
                     let vidId = `vid-${q.id}`;
                     
                     if(q.embedCode) { 
+                        // Fix: Case insensitive replace for iframe
                         let safeEmbed = q.embedCode.replace(/allowfullscreen/gi, '');
                         if (!safeEmbed.includes('allow=')) {
-                             safeEmbed = safeEmbed.replace('<iframe', '<iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"');
+                             safeEmbed = safeEmbed.replace(/<iframe/i, '<iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"');
                         }
                         vid = `<div class="media-container embed-container" id="${vidId}">${safeEmbed}</div>`; 
                     } 
                     else if (Utils.isHTML5Video(q.videoUrl)) { 
-                        // Generate controlsList based on stored settings
                         const controls = q.videoControls || { download: false, fullscreen: false, playbackrate: true, pip: false };
                         let controlsList = [];
                         if(!controls.download) controlsList.push('nodownload');
@@ -113,7 +118,6 @@ const Generator = {
                         vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`; 
                     }
 
-                    // Wrap video in resizable container with grip, if video exists
                     if(vid) {
                         vid = `<div class="resizable-media" id="res-${vidId}" style="width:100%;">
                                  ${vid}
@@ -157,7 +161,9 @@ const Generator = {
         .tab-btn.active{background:var(--accent);color:white;}
         .exam-section{display:none;}
         .exam-section.active{display:block;}
-        .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; display: block !important; width: 100%; box-sizing: border-box; }
+        /* Added white-space to preserve newlines in questions */
+        .q-content, .sub-q-text { white-space: pre-wrap; }
+        .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; display: block !important; width: 100%; box-sizing: border-box; white-space: pre-wrap; }
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
@@ -404,11 +410,11 @@ const Generator = {
 
         const tool = document.getElementById('highlighterTool');
         const handle = document.getElementById('hlDragHandle');
-        let isDragging = false, startX_tool, startY_tool, initialLeft, initialTop;
+        let isDragging = false, startX, startY, initialLeft, initialTop;
         handle.onmousedown = function(e) {
-            e.preventDefault(); isDragging=true; startX_tool=e.clientX; startY_tool=e.clientY; initialLeft=tool.offsetLeft; initialTop=tool.offsetTop;
+            e.preventDefault(); isDragging=true; startX=e.clientX; startY=e.clientY; initialLeft=tool.offsetLeft; initialTop=tool.offsetTop;
             document.onmouseup = function(){isDragging=false; document.onmouseup=null; document.onmousemove=null;};
-            document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY_tool)+"px"; tool.style.left=(initialLeft+e.clientX-startX_tool)+"px"; tool.style.right='auto';};
+            document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY)+"px"; tool.style.left=(initialLeft+e.clientX-startX)+"px"; tool.style.right='auto';};
         };
 
         function lockExam(){ clearInterval(timerInterval); document.getElementById('securityModal').style.display='flex'; }
