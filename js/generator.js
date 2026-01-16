@@ -86,14 +86,21 @@ const Generator = {
                     let vid = '';
                     let vidId = `vid-${q.id}`;
                     
-                    // Priority 1: Embed Code
-                    if(q.embedCode) { vid = `<div class="media-container embed-container" id="${vidId}">${q.embedCode}</div>`; } 
-                    // Priority 2: HTML5 Video File (Local or Remote MP4)
-                    else if (Utils.isHTML5Video(q.videoUrl)) { vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;"><video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video></div>`; }
-                    // Priority 3: Iframe Link (YouTube/Drive) - No Sandbox
-                    else if (embedSrc) { vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`; }
+                    if(q.embedCode) { 
+                        // Strip allowfullscreen from embed code to prevent students from breaking out
+                        let safeEmbed = q.embedCode.replace(/allowfullscreen/gi, '');
+                        vid = `<div class="media-container embed-container" id="${vidId}">${safeEmbed}</div>`; 
+                    } 
+                    else if (Utils.isHTML5Video(q.videoUrl)) { 
+                        // Add controlsList="nofullscreen" to native video player
+                        vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;"><video controls controlsList="nofullscreen nodownload" src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video></div>`; 
+                    }
+                    else if (embedSrc) { 
+                        // Iframe without allowfullscreen attribute
+                        vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`; 
+                    }
 
-                    // Wrap video in resizable container with grip, if video exists
+                    // Wrap video in resizable container
                     if(vid) {
                         vid = `<div class="resizable-media" id="res-${vidId}" style="width:100%;">
                                  ${vid}
@@ -431,22 +438,10 @@ const Generator = {
         function enableGradingUI() {
             document.querySelector('.teacher-controls').style.display='block';
             document.querySelectorAll('.grading-area').forEach(e=>e.style.display='block');
-            
-            // Enable grading inputs
             document.querySelectorAll('.grade-input, .teacher-comment').forEach(e=>e.disabled=false);
-            
-            // Enable student answer editing
-            document.querySelectorAll('.student-ans').forEach(e => {
-                e.removeAttribute('readonly');
-                e.disabled = false;
-                e.style.borderColor = '#3498db'; 
-            });
-
             document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
             document.querySelector('.student-submit-area').style.display='none';
             document.body.dataset.status = 'grading';
-            
-            // Show all sections
             document.querySelectorAll('.exam-section').forEach(e=>e.style.display='block');
             document.querySelector('.tabs').style.display='none';
 
