@@ -85,10 +85,19 @@ const Generator = {
                     const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
                     let vid = '';
                     let vidId = `vid-${q.id}`;
+                    
                     if(q.embedCode) { vid = `<div class="media-container embed-container" id="${vidId}">${q.embedCode}</div>`; } 
                     else if (Utils.isHTML5Video(q.videoUrl)) { vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;"><video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video></div>`; }
                     else if (embedSrc) { vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`; }
-                    if(vid) { vid += `<button type="button" class="btn-expand-video" onclick="toggleVideoFullscreen('${vidId}')">🔲 הגדל למסך מלא</button>`; }
+
+                    // Change: Wrap video in resizable container instead of adding fullscreen button
+                    if(vid) {
+                        vid = `<div class="resizable-media" id="res-${vidId}" style="width:100%;">
+                                 ${vid}
+                                 <div class="resize-grip" title="גרור לשינוי גודל" onmousedown="initResize(event, 'res-${vidId}')">||</div>
+                               </div>`;
+                    }
+
                     const imgSrc = Utils.getImageSrc(q.imageUrl);
                     let img = imgSrc ? `<div class="image-wrapper"><img src="${imgSrc}" alt="Question Image"></div>` : '';
                     let interactionHTML = '';
@@ -127,10 +136,10 @@ const Generator = {
         .exam-section.active{display:block;}
         .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; display: block !important; width: 100%; box-sizing: border-box; }
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
-        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
         .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; }
-        .embed-container { margin: 20px 0; text-align: center; }
+        .embed-container { margin: 0; text-align: center; }
         .embed-container iframe { max-width: 100%; }
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
@@ -148,13 +157,10 @@ const Generator = {
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
         #securityModal h2, #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; }
         
-        /* Video Fullscreen Overlay Styles */
-        .video-wrapper.fullscreen-mode, .embed-container.fullscreen-mode { position: fixed; top: 0; left: 0; width: 100% !important; height: 100% !important; max-width: none !important; z-index: 99999; background: rgba(0,0,0,0.9); padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; }
-        .video-wrapper.fullscreen-mode iframe, .video-wrapper.fullscreen-mode video, .embed-container.fullscreen-mode iframe { width: 90% !important; height: 90% !important; border: none; }
-        .btn-expand-video { display: block; margin: 5px auto 20px auto; background: #34495e; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; cursor: pointer; transition: background 0.2s; }
-        .btn-expand-video:hover { background: #2c3e50; }
-        .btn-close-fs { position: absolute; top: 20px; right: 20px; background: #e74c3c; color: white; border: none; padding: 10px 20px; font-size: 1.2em; border-radius: 5px; z-index: 100000; cursor: pointer; display: none; }
-        .fullscreen-mode .btn-close-fs { display: block; }
+        /* Resizable Media CSS */
+        .resizable-media { position: relative; margin: 20px 0; max-width: 100%; }
+        .resize-grip { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 15px; height: 50px; background-color: rgba(52, 152, 219, 0.7); cursor: col-resize; z-index: 20; border-radius: 0 4px 4px 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; opacity: 0.5; transition: opacity 0.2s; }
+        .resizable-media:hover .resize-grip { opacity: 1; }
         </style></head><body>
         ${embeddedProjectData}
         <div id="highlighterTool"><div class="drag-handle" id="hlDragHandle">:::</div><div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div><div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div><div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div><div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div><div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div></div>
@@ -298,21 +304,27 @@ const Generator = {
             if(display) display.innerText = t;
         }
         
-        function toggleVideoFullscreen(id) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            
-            if (!el.querySelector('.btn-close-fs')) {
-                const closeBtn = document.createElement('button');
-                closeBtn.className = 'btn-close-fs';
-                closeBtn.innerText = 'סגור X';
-                closeBtn.onclick = function(e) {
-                    e.stopPropagation();
-                    toggleVideoFullscreen(id);
-                };
-                el.prepend(closeBtn);
+        // Drag Resize Logic
+        let startX, startWidth, resizableEl;
+        function initResize(e, id) {
+            e.preventDefault();
+            resizableEl = document.getElementById(id);
+            startX = e.clientX;
+            startWidth = resizableEl.offsetWidth;
+            document.addEventListener('mousemove', doResize);
+            document.addEventListener('mouseup', stopResize);
+        }
+        function doResize(e) {
+            // RTL: Dragging left (decreasing clientX) increases width
+            const dx = startX - e.clientX;
+            const newWidth = startWidth + dx;
+            if(newWidth > 200 && newWidth <= resizableEl.parentElement.offsetWidth) {
+                resizableEl.style.width = newWidth + 'px';
             }
-            el.classList.toggle('fullscreen-mode');
+        }
+        function stopResize() {
+            document.removeEventListener('mousemove', doResize);
+            document.removeEventListener('mouseup', stopResize);
         }
 
         let markerColor = null;
@@ -350,11 +362,11 @@ const Generator = {
 
         const tool = document.getElementById('highlighterTool');
         const handle = document.getElementById('hlDragHandle');
-        let isDragging = false, startX, startY, initialLeft, initialTop;
+        let isDragging = false, startX_tool, startY_tool, initialLeft, initialTop;
         handle.onmousedown = function(e) {
-            e.preventDefault(); isDragging=true; startX=e.clientX; startY=e.clientY; initialLeft=tool.offsetLeft; initialTop=tool.offsetTop;
+            e.preventDefault(); isDragging=true; startX_tool=e.clientX; startY_tool=e.clientY; initialLeft=tool.offsetLeft; initialTop=tool.offsetTop;
             document.onmouseup = function(){isDragging=false; document.onmouseup=null; document.onmousemove=null;};
-            document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY)+"px"; tool.style.left=(initialLeft+e.clientX-startX)+"px"; tool.style.right='auto';};
+            document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY_tool)+"px"; tool.style.left=(initialLeft+e.clientX-startX_tool)+"px"; tool.style.right='auto';};
         };
 
         function lockExam(){ 
