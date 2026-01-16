@@ -86,11 +86,14 @@ const Generator = {
                     let vid = '';
                     let vidId = `vid-${q.id}`;
                     
+                    // Priority 1: Embed Code
                     if(q.embedCode) { vid = `<div class="media-container embed-container" id="${vidId}">${q.embedCode}</div>`; } 
+                    // Priority 2: HTML5 Video File (Local or Remote MP4)
                     else if (Utils.isHTML5Video(q.videoUrl)) { vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;"><video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video></div>`; }
+                    // Priority 3: Iframe Link (YouTube/Drive) - No Sandbox
                     else if (embedSrc) { vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`; }
 
-                    // Change: Wrap video in resizable container instead of adding fullscreen button
+                    // Wrap video in resizable container with grip, if video exists
                     if(vid) {
                         vid = `<div class="resizable-media" id="res-${vidId}" style="width:100%;">
                                  ${vid}
