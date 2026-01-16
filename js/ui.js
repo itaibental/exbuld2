@@ -1,10 +1,10 @@
 const UI = {
-    elements: {}, 
+    elements: {}, // Will be populated on init
     
     initElements: function() {
         const idList = [
             'qPart', 'partNameInput', 'partInstructions', 'partNameLabel', 
-            'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qEmbed', 'qImage', 
+            'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qEmbed', 'qImage', // Added qEmbed
             'previewQuestionsContainer', 'statsContainer', 'totalPoints', 
             'studentNameInput', 'filenamePreview', 'previewTabs', 
             'examInstructions', 'previewInstructionsBox', 'examTitleInput', 
@@ -25,7 +25,7 @@ const UI = {
         toast.className = `toast ${type}`;
         toast.textContent = message;
         this.elements.toastContainer.appendChild(toast);
-        void toast.offsetWidth;
+        void toast.offsetWidth; // Trigger reflow
         toast.classList.add('visible');
         setTimeout(() => {
             toast.classList.remove('visible');
@@ -111,7 +111,7 @@ const UI = {
             
             // 1. Embed Code
             if (q.embedCode) {
-                mediaHTML += `<div class="video-wrapper"><div class="video-shield"></div>${q.embedCode}</div>`;
+                mediaHTML += `<div class="media-container embed-container">${q.embedCode}</div>`;
             } 
             // 2. HTML5 Video (New)
             else if (Utils.isHTML5Video(q.videoUrl)) {
@@ -119,10 +119,10 @@ const UI = {
                     <video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
                 </div>`;
             }
-            // 3. Iframe Embed (YouTube/Drive)
+            // 3. Iframe Embed (YouTube/Drive) - No Sandbox
             else {
                 const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
-                if (embedSrc) mediaHTML += `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0"></iframe></div>`;
+                if (embedSrc) mediaHTML += `<div class="video-wrapper"><iframe src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>`;
             }
 
             const imgSrc = Utils.getImageSrc(q.imageUrl);
@@ -182,6 +182,7 @@ const UI = {
             list.appendChild(row);
         });
 
+        // Update main points and visibility
         if (ExamState.tempSubQuestions.length > 0) {
             const total = ExamState.tempSubQuestions.reduce((acc, curr) => acc + (curr.points || 0), 0);
             this.elements.qPoints.value = total;
