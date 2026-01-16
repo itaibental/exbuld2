@@ -16,9 +16,9 @@ const ExamState = {
     },
     partNamesList: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שביעי", "שמיני", "תשיעי", "עשירי"],
     subLabels: ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י"],
-    tempSubQuestions: [], // Holds sub-questions currently being edited
+    tempSubQuestions: [], 
 
-    // Methods to mutate state
+    // Methods
     addQuestion: function(q) { this.questions.push(q); },
     removeQuestion: function(id) { this.questions = this.questions.filter(q => q.id !== id); },
     addPart: function(part) { this.parts.push(part); },
