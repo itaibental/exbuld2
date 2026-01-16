@@ -20,7 +20,6 @@ const App = {
     },
 
     saveProject: function() {
-        // ... (קוד שמירת הפרויקט ללא שינוי מהותי כאן)
         try {
             const projectData = {
                 state: ExamState,
@@ -34,6 +33,7 @@ const App = {
                 },
                 timestamp: Date.now()
             };
+
             const dataStr = JSON.stringify(projectData, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -51,7 +51,6 @@ const App = {
     },
 
     handleProjectLoad: function(event) {
-        // ... (קוד טעינת פרויקט ללא שינוי)
         const file = event.target.files[0];
         if (!file) return;
         
@@ -59,6 +58,7 @@ const App = {
         reader.onload = function(e) {
             try {
                 let loaded;
+                
                 if (file.name.endsWith('.html')) {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(e.target.result, 'text/html');
@@ -72,7 +72,9 @@ const App = {
                     loaded = JSON.parse(e.target.result);
                 }
                 
-                if (!loaded.state || !loaded.state.questions) throw new Error("קובץ לא תקין");
+                if (!loaded.state || !loaded.state.questions) {
+                    throw new Error("קובץ לא תקין");
+                }
 
                 ExamState.questions = loaded.state.questions;
                 ExamState.parts = loaded.state.parts;
@@ -105,7 +107,9 @@ const App = {
                 UI.updateStats();
                 App.setTab(ExamState.currentTab);
                 UI.renderPreview();
+                
                 UI.showToast('המבחן נטען בהצלחה!');
+
             } catch (err) {
                 console.error(err);
                 UI.showToast('שגיאה בטעינת הקובץ: ' + err.message, 'error');
@@ -116,7 +120,6 @@ const App = {
     },
 
     handleSubmittedExamLoad: function(event) {
-        // ... (הפונקציה המעודכנת מהבקשה הקודמת)
         const file = event.target.files[0];
         if (!file) return;
 
@@ -190,6 +193,7 @@ const App = {
                 if(exportBtn) exportBtn.setAttribute('onclick', 'window.ExamFunctions.exportToDoc()');
 
                 window.ExamFunctions.calcTotal();
+
                 UI.showToast('המבחן נטען לבדיקה');
 
             } catch (err) {
@@ -207,7 +211,6 @@ const App = {
         document.getElementById('questionsList').style.display = 'block';
     },
 
-    // --- Updated Edit Question to handle Embed Code ---
     editQuestion: function(id) {
         const q = ExamState.questions.find(q => q.id === id);
         if (!q) return;
@@ -216,9 +219,16 @@ const App = {
         UI.elements.qPoints.value = q.points;
         UI.elements.qModelAnswer.value = q.modelAnswer || '';
         UI.elements.qVideo.value = q.videoUrl || '';
-        if(UI.elements.qEmbed) UI.elements.qEmbed.value = q.embedCode || ''; // Load Embed Code
+        if(UI.elements.qEmbed) UI.elements.qEmbed.value = q.embedCode || ''; 
         UI.elements.qImage.value = q.imageUrl || '';
         
+        // Load video controls settings if they exist, otherwise defaults
+        const controls = q.videoControls || { download: false, fullscreen: false, playbackrate: true, pip: false };
+        if(document.getElementById('vc-download')) document.getElementById('vc-download').checked = controls.download;
+        if(document.getElementById('vc-fullscreen')) document.getElementById('vc-fullscreen').checked = controls.fullscreen;
+        if(document.getElementById('vc-playbackrate')) document.getElementById('vc-playbackrate').checked = controls.playbackrate;
+        if(document.getElementById('vc-pip')) document.getElementById('vc-pip').checked = controls.pip;
+
         ExamState.tempSubQuestions = q.subQuestions ? [...q.subQuestions] : [];
         UI.renderSubQuestionInputs();
 
@@ -239,6 +249,7 @@ const App = {
 
     setupTextFormatting: function() {
         const tooltip = document.getElementById('textFormatTooltip');
+        
         document.addEventListener('mousedown', (e) => {
             if (e.target.closest('#textFormatTooltip')) return; 
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -249,6 +260,7 @@ const App = {
             const target = e.target;
             if ((target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && target.type === 'text')) && 
                 (target.closest('#rightPanel') || target.id === 'previewPartInstructions')) {
+                
                 this.activeFormatInput = target;
                 const rect = target.getBoundingClientRect();
                 tooltip.style.left = `${rect.left}px`;
@@ -256,20 +268,28 @@ const App = {
                 tooltip.style.display = 'flex'; 
             }
         };
+
         document.addEventListener('focusin', handleInputInteraction);
         document.addEventListener('mouseup', handleInputInteraction);
     },
 
     applyFormat: function(tag) {
         if (!this.activeFormatInput) return;
+        
         const el = this.activeFormatInput;
         const start = el.selectionStart;
         const end = el.selectionEnd;
         const text = el.value;
         const selectedText = text.substring(start, end);
-        if (!selectedText) { UI.showToast('אנא סמן טקסט לעיצוב', 'error'); return; }
+        
+        if (!selectedText) {
+            UI.showToast('אנא סמן טקסט לעיצוב', 'error');
+            return;
+        }
+
         const newText = text.substring(0, start) + `<${tag}>${selectedText}</${tag}>` + text.substring(end);
         el.value = newText;
+
         el.dispatchEvent(new Event('input', { bubbles: true }));
         el.focus();
         el.setSelectionRange(start, end + tag.length * 2 + 5); 
@@ -281,8 +301,10 @@ const App = {
         if (part) {
             UI.elements.partNameInput.value = part.name;
             UI.elements.partNameLabel.textContent = part.name;
+            
             const instructions = ExamState.instructions.parts[selectedPartId] || '';
             UI.elements.partInstructions.value = instructions;
+            
             this.setTab(selectedPartId);
         }
     },
@@ -290,9 +312,12 @@ const App = {
     setTab: function(partId) {
         ExamState.currentTab = partId;
         UI.renderTabs();
+        
         const instructions = ExamState.instructions.parts[partId] || '';
         if(UI.elements.partInstructions) UI.elements.partInstructions.value = instructions;
+        
         UI.updatePartInstructionsInput(instructions);
+
         if(UI.elements.qPart.value !== partId) {
             UI.elements.qPart.value = partId;
             const part = ExamState.parts.find(p => p.id === partId);
@@ -309,24 +334,32 @@ const App = {
         let suffix = "";
         if (nextIdx < ExamState.partNamesList.length) suffix = ExamState.partNamesList[nextIdx];
         else suffix = (nextIdx + 1).toString();
+        
         const newId = ExamState.getNextPartId();
         const newName = "חלק " + suffix;
+        
         ExamState.addPart({ id: newId, name: newName });
         UI.renderPartSelector();
         UI.renderTabs();
         UI.updateStats();
+        
         UI.elements.qPart.value = newId;
         this.onPartSelectChange();
         UI.showToast(`חלק חדש נוסף: ${newName}`);
     },
 
     removePart: function() {
-        if (ExamState.parts.length <= 1) { UI.showToast('חייב להישאר לפחות חלק אחד בבחינה.', 'error'); return; }
+        if (ExamState.parts.length <= 1) {
+            UI.showToast('חייב להישאר לפחות חלק אחד בבחינה.', 'error');
+            return;
+        }
         const partIdToRemove = UI.elements.qPart.value;
         const partName = ExamState.parts.find(p => p.id === partIdToRemove).name;
+        
         UI.showConfirm('מחיקת חלק', `האם למחוק את "${partName}"? השאלות בחלק זה יימחקו.`, () => {
             ExamState.removePart(partIdToRemove);
             if (ExamState.parts.length > 0) ExamState.currentTab = ExamState.parts[0].id;
+            
             UI.renderPartSelector();
             UI.renderTabs();
             UI.updateStats();
@@ -355,17 +388,27 @@ const App = {
         if(UI.elements.partInstructions) UI.elements.partInstructions.value = value;
     },
 
-    // --- Updated Add Question to handle Embed Code ---
     addQuestion: function() {
         const text = UI.elements.qText.value.trim();
         const modelAnswer = UI.elements.qModelAnswer.value.trim();
         const part = UI.elements.qPart.value;
         const videoUrl = UI.elements.qVideo.value.trim();
-        const embedCode = UI.elements.qEmbed.value.trim(); // Capture Embed
+        const embedCode = UI.elements.qEmbed.value.trim(); 
         const imageUrl = UI.elements.qImage.value.trim();
         let points = parseInt(UI.elements.qPoints.value) || 0;
+        
+        // Capture video control settings
+        const videoControls = {
+            download: document.getElementById('vc-download')?.checked || false,
+            fullscreen: document.getElementById('vc-fullscreen')?.checked || false,
+            playbackrate: document.getElementById('vc-playbackrate')?.checked || false,
+            pip: document.getElementById('vc-pip')?.checked || false
+        };
 
-        if (!text) { UI.showToast('אנא הכנס תוכן לשאלה', 'error'); return; }
+        if (!text) {
+            UI.showToast('אנא הכנס תוכן לשאלה', 'error');
+            return;
+        }
 
         if (ExamState.tempSubQuestions.length > 0) {
             points = ExamState.tempSubQuestions.reduce((acc, curr) => acc + (curr.points || 0), 0);
@@ -373,7 +416,7 @@ const App = {
 
         const question = {
             id: Date.now(),
-            part, points, text, modelAnswer, videoUrl, embedCode, imageUrl,
+            part, points, text, modelAnswer, videoUrl, embedCode, imageUrl, videoControls,
             subQuestions: [...ExamState.tempSubQuestions]
         };
 
@@ -383,8 +426,15 @@ const App = {
         UI.elements.qModelAnswer.value = '';
         UI.elements.qPoints.value = '10';
         UI.elements.qVideo.value = '';
-        UI.elements.qEmbed.value = ''; // Reset
+        UI.elements.qEmbed.value = ''; 
         UI.elements.qImage.value = '';
+        
+        // Reset video controls to defaults
+        if(document.getElementById('vc-download')) document.getElementById('vc-download').checked = false;
+        if(document.getElementById('vc-fullscreen')) document.getElementById('vc-fullscreen').checked = false;
+        if(document.getElementById('vc-playbackrate')) document.getElementById('vc-playbackrate').checked = true;
+        if(document.getElementById('vc-pip')) document.getElementById('vc-pip').checked = false;
+
         UI.elements.qText.focus();
         ExamState.tempSubQuestions = [];
         UI.renderSubQuestionInputs();
