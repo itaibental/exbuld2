@@ -126,20 +126,26 @@ const Generator = {
                 qHtml = partQuestions.map((q, qIdx) => {
                     const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
                     let vid = '';
+                    let vidId = `vid-${q.id}`;
                     
                     // Priority 1: Embed Code
                     if(q.embedCode) {
-                        vid = `<div class="video-wrapper"><div class="video-shield"></div>${q.embedCode}</div>`;
+                        vid = `<div class="media-container embed-container" id="${vidId}">${q.embedCode}</div>`;
                     } 
                     // Priority 2: HTML5 Video File
                     else if (Utils.isHTML5Video(q.videoUrl)) {
-                        vid = `<div class="video-wrapper" style="padding-bottom:0; height:auto; background:black;">
+                        vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;">
                             <video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
                         </div>`;
                     }
                     // Priority 3: Iframe Link
                     else if (embedSrc) {
-                        vid = `<div class="video-wrapper"><div class="video-shield"></div><iframe sandbox="allow-scripts allow-same-origin allow-presentation" src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>`;
+                        vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>`;
+                    }
+
+                    // Add Fullscreen Toggle Button if video exists
+                    if(vid) {
+                        vid += `<button type="button" class="btn-expand-video" onclick="toggleVideoFullscreen('${vidId}')">🔲 הגדל למסך מלא</button>`;
                     }
 
                     const imgSrc = Utils.getImageSrc(q.imageUrl);
@@ -221,9 +227,39 @@ const Generator = {
         .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; display: block !important; width: 100%; box-sizing: border-box; }
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
         
+        /* Video Fullscreen Overlay Styles */
+        .video-wrapper.fullscreen-mode, .embed-container.fullscreen-mode {
+            position: fixed; top: 0; left: 0; width: 100% !important; height: 100% !important;
+            max-width: none !important; z-index: 99999; background: rgba(0,0,0,0.9);
+            padding: 0; margin: 0; display: flex; align-items: center; justify-content: center;
+        }
+        .video-wrapper.fullscreen-mode iframe, 
+        .video-wrapper.fullscreen-mode video,
+        .embed-container.fullscreen-mode iframe {
+            width: 90% !important; height: 90% !important; border: none;
+        }
+        .btn-expand-video {
+            display: block; margin: 5px auto 20px auto; background: #34495e; color: #fff;
+            border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-expand-video:hover { background: #2c3e50; }
+        
+        /* Close button for fullscreen mode */
+        .btn-close-fs {
+            position: absolute; top: 20px; right: 20px; background: #e74c3c; color: white;
+            border: none; padding: 10px 20px; font-size: 1.2em; border-radius: 5px;
+            z-index: 100000; cursor: pointer; display: none;
+        }
+        .fullscreen-mode .btn-close-fs { display: block; }
+
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
         .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; }
+        
+        .embed-container { margin: 20px 0; text-align: center; }
+        .embed-container iframe { max-width: 100%; }
+
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
 
@@ -387,6 +423,24 @@ const Generator = {
             if(display) display.innerText = t;
         }
         
+        // Fullscreen Toggle Function
+        function toggleVideoFullscreen(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            
+            if (!el.querySelector('.btn-close-fs')) {
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'btn-close-fs';
+                closeBtn.innerText = 'סגור X';
+                closeBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    toggleVideoFullscreen(id);
+                };
+                el.prepend(closeBtn);
+            }
+            el.classList.toggle('fullscreen-mode');
+        }
+
         let markerColor = null;
         function setMarker(color, btn) {
             markerColor = color;
@@ -467,22 +521,10 @@ const Generator = {
         function enableGradingUI() {
             document.querySelector('.teacher-controls').style.display='block';
             document.querySelectorAll('.grading-area').forEach(e=>e.style.display='block');
-            
-            // Enable grading inputs
             document.querySelectorAll('.grade-input, .teacher-comment').forEach(e=>e.disabled=false);
-            
-            // Enable student answer editing
-            document.querySelectorAll('.student-ans').forEach(e => {
-                e.removeAttribute('readonly');
-                e.disabled = false;
-                e.style.borderColor = '#3498db'; // Optional visual cue
-            });
-
             document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
             document.querySelector('.student-submit-area').style.display='none';
             document.body.dataset.status = 'grading';
-            
-            // Show all sections
             document.querySelectorAll('.exam-section').forEach(e=>e.style.display='block');
             document.querySelector('.tabs').style.display='none';
 
