@@ -94,13 +94,25 @@ const Generator = {
                         vid = `<div class="media-container embed-container" id="${vidId}">${safeEmbed}</div>`; 
                     } 
                     else if (Utils.isHTML5Video(q.videoUrl)) { 
-                        vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;"><video controls playsinline controlsList="nofullscreen nodownload" src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video></div>`; 
+                        // Generate controlsList based on teacher selection
+                        const controls = q.videoControls || { download: false, fullscreen: false, playbackrate: true, pip: false };
+                        let controlsList = [];
+                        if(!controls.download) controlsList.push('nodownload');
+                        if(!controls.fullscreen) controlsList.push('nofullscreen');
+                        if(!controls.playbackrate) controlsList.push('noplaybackrate');
+                        if(!controls.pip) controlsList.push('nopip'); // Some browsers support this or disablePictureInPicture attribute
+
+                        let extraAttrs = '';
+                        if(!controls.pip) extraAttrs += ' disablePictureInPicture';
+                        
+                        vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;">
+                            <video controls playsinline controlsList="${controlsList.join(' ')}" ${extraAttrs} src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
+                        </div>`; 
                     }
                     else if (embedSrc) { 
                         vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`; 
                     }
 
-                    // שינוי: הוספת "ידית" פינתית לגרירה במקום פס צדדי
                     if(vid) {
                         vid = `<div class="resizable-media" id="res-${vidId}" style="width:100%;">
                                  ${vid}
@@ -146,7 +158,6 @@ const Generator = {
         .exam-section.active{display:block;}
         .part-instructions { background: #e8f6f3; border-right: 4px solid #1abc9c; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #16a085; font-size: 1.05em; line-height: 1.5; display: block !important; width: 100%; box-sizing: border-box; }
         .school-logo { display: block; margin: 0 auto 20px auto; max-width: 200px; max-height: 150px; width: auto; height: auto; object-fit: contain; }
-        
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; width: 100%; max-width: 100%; margin: 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
         .video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 15%; z-index: 10; background: transparent; }
@@ -154,13 +165,11 @@ const Generator = {
         .embed-container iframe { max-width: 100%; }
         .image-wrapper { text-align: center; margin: 20px 0; width: 100%; }
         .image-wrapper img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto; }
-        
         .teacher-controls { background: #fdf2e9; padding: 15px; border: 1px solid #f39c12; border-radius: 8px; margin-bottom: 20px; }
         .grading-area { display: none; margin-top: 15px; background: #fafafa; padding: 10px; border-top: 2px solid #bdc3c7; }
         .grade-input { width: 60px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
         .teacher-comment { background: #fff; }
         .model-answer-secret { margin-top: 10px; border: 1px dashed #f39c12; padding: 10px; background: #fffdf5; border-radius: 4px; font-size: 0.9em; color: #555; }
-        
         #highlighterTool { position: fixed; top: 150px; right: 20px; width: 50px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 30px; padding: 15px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10000; border: 1px solid #ddd; transition: opacity 0.3s; }
         .color-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; }
         .color-btn:hover { transform: scale(1.2); }
@@ -170,7 +179,7 @@ const Generator = {
         #timerBadge{position:fixed;top:10px;left:10px;background:white;color:black;padding:10px;border-radius:20px;border:2px solid #2c3e50;font-weight:bold;z-index:5000;display:none;}
         #securityModal h2, #timesUpModal h2 { font-size: 3rem; margin-bottom: 10px; color: #e74c3c; }
         
-        /* Updated Resizable Media CSS - Corner Grip */
+        /* Resizable Media CSS */
         .resizable-media { position: relative; margin: 20px 0; max-width: 100%; }
         .resize-handle { 
             position: absolute; 
@@ -328,7 +337,7 @@ const Generator = {
             if(display) display.innerText = t;
         }
         
-        // Drag Resize Logic (Corner Grip)
+        // Drag Resize Logic
         let startX, startWidth, resizableEl;
         function initResize(e, id) {
             e.preventDefault();
@@ -344,15 +353,9 @@ const Generator = {
             document.addEventListener('mouseup', stopResize);
         }
         function doResize(e) {
-            // RTL: Handle at bottom-left. Dragging left increases width (smaller X)
-            // But wait, in RTL flow, dragging left actually means extending the element to the left if it's anchored right?
-            // Actually, in standard CSS layout, width grows to the left in RTL if direction is handled, 
-            // but standard 'width' usually grows right in DOM flow. 
-            // Let's assume standard behavior: moving mouse LEFT (negative dx) should INCREASE width if handle is on left.
-            
-            const dx = startX - e.clientX; // positive if moved left
+            // RTL: Dragging left (decreasing clientX) increases width
+            const dx = startX - e.clientX;
             const newWidth = startWidth + dx;
-            
             if(newWidth > 200 && newWidth <= resizableEl.parentElement.offsetWidth) {
                 resizableEl.style.width = newWidth + 'px';
             }
@@ -400,39 +403,18 @@ const Generator = {
 
         const tool = document.getElementById('highlighterTool');
         const handle = document.getElementById('hlDragHandle');
-        let isDragging = false, startX_tool, startY_tool, initialLeft, initialTop;
+        let isDragging = false, startX, startY, initialLeft, initialTop;
         handle.onmousedown = function(e) {
-            e.preventDefault(); isDragging=true; startX_tool=e.clientX; startY_tool=e.clientY; initialLeft=tool.offsetLeft; initialTop=tool.offsetTop;
+            e.preventDefault(); isDragging=true; startX=e.clientX; startY=e.clientY; initialLeft=tool.offsetLeft; initialTop=tool.offsetTop;
             document.onmouseup = function(){isDragging=false; document.onmouseup=null; document.onmousemove=null;};
-            document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY_tool)+"px"; tool.style.left=(initialLeft+e.clientX-startX_tool)+"px"; tool.style.right='auto';};
+            document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY)+"px"; tool.style.left=(initialLeft+e.clientX-startX)+"px"; tool.style.right='auto';};
         };
 
-        function lockExam(){ 
-            if (document.hidden) {
-                clearInterval(timerInterval); 
-                document.getElementById('securityModal').style.display='flex'; 
-            }
-        }
-        
-        function checkSec(){ 
-            if(!examStarted || document.body.dataset.status==='submitted') return; 
-            if(document.hidden){
-                lockExam();
-            }
-        }
-        
-        document.addEventListener('visibilitychange', checkSec);
-        document.addEventListener('fullscreenchange', () => {}); 
-
-        function unlockExam(){ 
-            if(simpleHash(document.getElementById('teacherCodeInput').value)==="${unlockCodeHash}"){ 
-                document.getElementById('securityModal').style.display='none'; 
-                document.documentElement.requestFullscreen().catch(e=>console.log(e)); 
-                runTimer(); 
-            } else { 
-                alert('קוד שגוי'); 
-            } 
-        }
+        function lockExam(){ clearInterval(timerInterval); document.getElementById('securityModal').style.display='flex'; }
+        function checkSec(){ if(!examStarted||document.body.dataset.status==='submitted')return; if(document.hidden){lockExam();} }
+        document.addEventListener('visibilitychange',checkSec);
+        document.addEventListener('fullscreenchange', () => { if(!document.fullscreenElement && examStarted && document.body.dataset.status!=='submitted') { lockExam(); } });
+        function unlockExam(){ if(simpleHash(document.getElementById('teacherCodeInput').value)==="${unlockCodeHash}"){ document.getElementById('securityModal').style.display='none'; document.documentElement.requestFullscreen().catch(e=>console.log(e)); runTimer(); } else { alert('קוד שגוי'); } }
 
         function submitExam(){
             document.body.dataset.status='submitted';
@@ -454,7 +436,6 @@ const Generator = {
         function enableGradingFromModal() {
              if(simpleHash(prompt('הכנס קוד מורה:'))==="${unlockCodeHash}") {
                  document.getElementById('successModal').style.display='none';
-                 document.getElementById('timesUpModal').style.display='none'; // Close times up modal if open
                  enableGradingUI();
              } else { alert('קוד שגוי'); }
         }
