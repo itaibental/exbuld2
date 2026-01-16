@@ -1,10 +1,10 @@
 const UI = {
-    elements: {}, // Will be populated on init
+    elements: {}, 
     
     initElements: function() {
         const idList = [
             'qPart', 'partNameInput', 'partInstructions', 'partNameLabel', 
-            'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qEmbed', 'qImage', // Added qEmbed
+            'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qEmbed', 'qImage', 
             'previewQuestionsContainer', 'statsContainer', 'totalPoints', 
             'studentNameInput', 'filenamePreview', 'previewTabs', 
             'examInstructions', 'previewInstructionsBox', 'examTitleInput', 
@@ -25,7 +25,7 @@ const UI = {
         toast.className = `toast ${type}`;
         toast.textContent = message;
         this.elements.toastContainer.appendChild(toast);
-        void toast.offsetWidth; // Trigger reflow
+        void toast.offsetWidth;
         toast.classList.add('visible');
         setTimeout(() => {
             toast.classList.remove('visible');
@@ -111,18 +111,20 @@ const UI = {
             
             // 1. Embed Code
             if (q.embedCode) {
-                mediaHTML += `<div class="media-container embed-container">${q.embedCode}</div>`;
+                // Strip allowfullscreen from embed code
+                let safeEmbed = q.embedCode.replace(/allowfullscreen/gi, '');
+                mediaHTML += `<div class="media-container embed-container">${safeEmbed}</div>`;
             } 
             // 2. HTML5 Video (New)
             else if (Utils.isHTML5Video(q.videoUrl)) {
                 mediaHTML += `<div class="video-wrapper" style="padding-bottom:0; height:auto; background:black;">
-                    <video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
+                    <video controls controlsList="nofullscreen nodownload" src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
                 </div>`;
             }
-            // 3. Iframe Embed (YouTube/Drive) - No Sandbox
+            // 3. Iframe Embed (YouTube/Drive) - No Sandbox, No AllowFullscreen
             else {
                 const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
-                if (embedSrc) mediaHTML += `<div class="video-wrapper"><iframe src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>`;
+                if (embedSrc) mediaHTML += `<div class="video-wrapper"><iframe src="${embedSrc}" frameborder="0"></iframe></div>`;
             }
 
             const imgSrc = Utils.getImageSrc(q.imageUrl);
