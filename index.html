@@ -12,42 +12,19 @@
     
     <!-- קישור לקובץ העיצוב -->
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* סגנון לחלונית צפייה במבחן */
-        #submittedExamView {
-            display: none;
-            background: white;
-            padding: 20px;
-            margin-top: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
-        /* Video Controls Checkboxes */
-        .video-controls-options {
-            display: flex; flex-wrap: wrap; gap: 15px; margin-top: 5px; margin-bottom: 15px;
-            background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; font-size: 0.9rem;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .video-controls-options label {
-            display: flex; align-items: center; gap: 5px; margin: 0; cursor: pointer; color: #ecf0f1;
-        }
-        .video-controls-options input[type="checkbox"] {
-            width: auto; margin: 0;
-        }
-    </style>
 </head>
 <body>
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- Confirmation Modal (Removed from top of editor, only used for confirmations) -->
+<!-- Confirmation Modal -->
 <div class="modal-overlay" id="confirmModal">
     <div class="modal-box">
         <div class="modal-title" id="modalTitle">אישור פעולה</div>
         <div class="modal-text" id="modalText">האם אתה בטוח?</div>
         <div class="modal-actions">
-            <button class="modal-btn btn-danger" id="btnConfirmYes" style="background: var(--danger); color: white;">כן, מחק</button>
+            <button class="modal-btn btn-danger" id="btnConfirmYes">כן, מחק</button>
             <button class="modal-btn btn-cancel" onclick="UI.closeModal()">ביטול</button>
         </div>
     </div>
@@ -193,6 +170,7 @@
                 </div>
             </div>
         </div>
+        <!-- אזור צפייה במבחן פתור (יוצג כשצריך) -->
         <div id="submittedExamView"></div>
     </div>
 
@@ -231,7 +209,7 @@
     <span style="font-size: 0.8em; opacity: 0.7;">עדכון אחרון: 16/01/2026</span>
 </footer>
 
-<!-- Scripts -->
+<!-- Scripts (Order Matters) -->
 <script src="js/state.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/student_code.js"></script>
