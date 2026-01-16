@@ -34,6 +34,25 @@ body {
 /* ========================================== */
 /* === 2. מבנה העמוד (Layout Grid) === */
 /* ========================================== */
+
+/* New App Header */
+.main-app-header {
+    background-color: var(--accent);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+    z-index: 100;
+}
+
+.main-app-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
 .container {
     display: flex;
     width: 100%;
@@ -107,7 +126,7 @@ body {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 16px;
+    width: 16px; /* הרחבנו את אזור התפיסה */
     cursor: col-resize;
     z-index: 100;
     display: flex;
@@ -117,32 +136,36 @@ body {
 }
 
 .resizer-right-col {
-    left: -8px;
+    left: -8px; /* ממקם את ה-Resizer בדיוק על הגבול */
 }
 
 .resizer-left-col {
     right: 0;
 }
 
+/* Dotted Pattern Visual - עיצוב השטח המקוקו */
 .resizer::after {
     content: '';
     height: 100%;
     width: 4px;
+    /* יצירת אפקט מקוקו כפול */
     border-left: 2px dotted rgba(255, 255, 255, 0.4);
     border-right: 2px dotted rgba(255, 255, 255, 0.4);
     opacity: 0.7;
     transition: all 0.2s;
 }
 
+/* Hover & Active States */
 .resizer:hover, .resizer.resizing {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.2); /* רקע כהה עדין בעת ריחוף */
 }
 
 .resizer:hover::after, .resizer.resizing::after {
-    border-color: var(--accent);
+    border-color: var(--accent); /* שינוי צבע הקיוקוו לתכלת */
     opacity: 1;
-    width: 6px;
+    width: 6px; /* הרחבה ויזואלית קלה */
 }
+
 
 /* עיצוב קטגוריות בעמודה הימנית */
 details.editor-category {
@@ -409,8 +432,6 @@ button:active { transform: translateY(0); }
 }
 
 .media-container { width: 100%; margin-bottom: 2.5vh; }
-.embed-container { text-align: center; margin: 15px 0; }
-.embed-container iframe { max-width: 100%; }
 
 @media (min-width: 768px) {
     .media-container { max-width: 70%; margin-left: auto; margin-right: auto; }
@@ -424,9 +445,8 @@ button:active { transform: translateY(0); }
     border-radius: 0.8em;
     background: #000;
     box-shadow: 0 0.5vh 1vh rgba(0,0,0,0.1);
-    margin: 15px 0;
 }
-.video-wrapper iframe, .video-wrapper video {
+.video-wrapper iframe {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;
 }
 .video-shield {
@@ -438,34 +458,19 @@ button:active { transform: translateY(0); }
     max-width: 100%; max-height: 40vh; border-radius: 0.8em; box-shadow: 0 0.5vh 1vh rgba(0,0,0,0.1); height: auto;
 }
 
-/* Card Actions (Edit/Delete Buttons) */
-.card-actions {
+.btn-delete {
     position: absolute;
-    top: 15px;
-    left: 15px;
-    display: flex;
-    gap: 8px;
+    top: 3vh;
+    left: 0;
+    background-color: transparent;
+    color: #ccc;
+    border: 1px solid #eee;
+    padding: 0.5vh 0.8vw;
+    font-size: 0.8rem;
+    width: auto;
+    box-shadow: none;
+    border-radius: 0.4em;
 }
-
-.btn-edit, .btn-delete {
-    position: static;
-    background-color: white;
-    border: 1px solid #ddd;
-    padding: 5px 10px;
-    font-size: 0.85rem;
-    border-radius: 4px;
-    color: #666;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.btn-edit:hover {
-    background-color: #ebf5fb;
-    color: var(--accent);
-    border-color: var(--accent);
-}
-
 .btn-delete:hover {
     background-color: #fff5f5;
     color: var(--danger);
@@ -497,27 +502,31 @@ button:active { transform: translateY(0); }
     margin-bottom: 4vh;
     padding-bottom: 2vh;
     border-bottom: 0.3vh solid var(--accent);
+    /* Flexbox ensures perfect centering and stacking */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 }
+
 #previewLogo { 
     display: block;
-    max-height: 15vh;
-    max-width: 90%;
-    width: auto;
+    max-height: 15vh; /* הגבלת גובה כדי לא להשתלט על המסך */
+    max-width: 90%;   /* מניעת חריגה לרוחב */
+    width: auto;      /* שמירה על פרופורציות */
     height: auto;
-    margin: 0 auto 2vh auto;
-    object-fit: contain;
+    margin: 0 auto 2vh auto; /* מירכוז ורווח תחתון מהכותרת */
+    object-fit: contain; /* הבטחת תצוגה חדה ללא עיוות */
 }
+
 #previewExamTitle {
     margin: 0;
     color: var(--primary);
     font-size: 2.2rem;
     font-weight: 700;
-    width: 100%;
+    width: 100%; /* Ensure title takes full width for text-align center to work if needed */
 }
+
 #studentNameInput {
     border: none;
     border-bottom: 0.3vh dashed #bdc3c7;
@@ -543,34 +552,6 @@ button:active { transform: translateY(0); }
     color: #455a64;
     font-size: 1.05rem;
     line-height: 1.6;
-}
-
-/* Middle Column Instructions Editor */
-.current-part-instructions-box {
-    margin-bottom: 20px;
-}
-.current-part-instructions-box textarea {
-    width: 100%;
-    min-height: 60px;
-    padding: 15px;
-    border: 1px dashed var(--accent);
-    background-color: #e8f6f3;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 1rem;
-    color: #16a085;
-    resize: vertical;
-    transition: all 0.3s;
-}
-.current-part-instructions-box textarea:focus {
-    background-color: #fff;
-    border-style: solid;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-}
-.current-part-instructions-box textarea::placeholder {
-    color: #a2d9ce;
-    font-style: italic;
 }
 
 /* Toast Notifications */
@@ -640,33 +621,7 @@ button:active { transform: translateY(0); }
 .modal-btn { flex: 1; max-width: 120px; }
 .btn-cancel { background: #95a5a6; color: white; }
 
-/* Submitted Exam View (No Iframe) */
-#submittedExamView {
-    display: none;
-    background: white;
-    padding: 20px;
-    margin-top: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.1);
-}
-.review-toolbar {
-    background: var(--primary); color: white; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
-}
-
-/* Video Controls Checkboxes */
-.video-controls-options {
-    display: flex; flex-wrap: wrap; gap: 15px; margin-top: 5px; margin-bottom: 15px;
-    background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; font-size: 0.9rem;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-.video-controls-options label {
-    display: flex; align-items: center; gap: 5px; margin: 0; cursor: pointer; color: #ecf0f1;
-}
-.video-controls-options input[type="checkbox"] {
-    width: auto; margin: 0;
-}
-
-/* Text Formatting Tooltip */
+/* === Text Formatting Tooltip (Editor) === */
 #textFormatTooltip {
     position: fixed;
     display: none;
@@ -676,6 +631,7 @@ button:active { transform: translateY(0); }
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     z-index: 10000;
     animation: fadeIn 0.2s;
+    /* Ensure it behaves like a toolbar */
     flex-direction: row;
     gap: 2px;
 }
@@ -706,3 +662,69 @@ button:active { transform: translateY(0); }
     align-self: center;
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* New Style for Middle Column Instructions Editor */
+.current-part-instructions-box {
+    margin-bottom: 20px;
+}
+
+.current-part-instructions-box textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 15px;
+    border: 1px dashed var(--accent); /* Dashed border to indicate "edit mode" */
+    background-color: #e8f6f3; /* Matching the student view color */
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    color: #16a085;
+    resize: vertical;
+    transition: all 0.3s;
+}
+
+.current-part-instructions-box textarea:focus {
+    background-color: #fff;
+    border-style: solid;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.current-part-instructions-box textarea::placeholder {
+    color: #a2d9ce;
+    font-style: italic;
+}
+
+/* Card Actions (Edit/Delete Buttons) */
+.card-actions {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit, .btn-delete {
+    position: static; /* Override previous absolute */
+    background-color: white;
+    border: 1px solid #ddd;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-edit:hover {
+    background-color: #ebf5fb;
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.btn-delete:hover {
+    background-color: #fff5f5;
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
