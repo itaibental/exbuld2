@@ -94,17 +94,17 @@ const Generator = {
                         vid = `<div class="media-container embed-container" id="${vidId}">${safeEmbed}</div>`; 
                     } 
                     else if (Utils.isHTML5Video(q.videoUrl)) { 
-                        // Generate controlsList based on teacher selection
+                        // Generate controlsList based on stored settings
                         const controls = q.videoControls || { download: false, fullscreen: false, playbackrate: true, pip: false };
                         let controlsList = [];
                         if(!controls.download) controlsList.push('nodownload');
                         if(!controls.fullscreen) controlsList.push('nofullscreen');
                         if(!controls.playbackrate) controlsList.push('noplaybackrate');
-                        if(!controls.pip) controlsList.push('nopip'); // Some browsers support this or disablePictureInPicture attribute
+                        if(!controls.pip) controlsList.push('nopip');
 
                         let extraAttrs = '';
                         if(!controls.pip) extraAttrs += ' disablePictureInPicture';
-                        
+
                         vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;">
                             <video controls playsinline controlsList="${controlsList.join(' ')}" ${extraAttrs} src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
                         </div>`; 
@@ -113,6 +113,7 @@ const Generator = {
                         vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`; 
                     }
 
+                    // Wrap video in resizable container with grip, if video exists
                     if(vid) {
                         vid = `<div class="resizable-media" id="res-${vidId}" style="width:100%;">
                                  ${vid}
@@ -403,11 +404,11 @@ const Generator = {
 
         const tool = document.getElementById('highlighterTool');
         const handle = document.getElementById('hlDragHandle');
-        let isDragging = false, startX, startY, initialLeft, initialTop;
+        let isDragging = false, startX_tool, startY_tool, initialLeft, initialTop;
         handle.onmousedown = function(e) {
-            e.preventDefault(); isDragging=true; startX=e.clientX; startY=e.clientY; initialLeft=tool.offsetLeft; initialTop=tool.offsetTop;
+            e.preventDefault(); isDragging=true; startX_tool=e.clientX; startY_tool=e.clientY; initialLeft=tool.offsetLeft; initialTop=tool.offsetTop;
             document.onmouseup = function(){isDragging=false; document.onmouseup=null; document.onmousemove=null;};
-            document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY)+"px"; tool.style.left=(initialLeft+e.clientX-startX)+"px"; tool.style.right='auto';};
+            document.onmousemove = function(e){if(!isDragging)return; tool.style.top=(initialTop+e.clientY-startY_tool)+"px"; tool.style.left=(initialLeft+e.clientX-startX_tool)+"px"; tool.style.right='auto';};
         };
 
         function lockExam(){ clearInterval(timerInterval); document.getElementById('securityModal').style.display='flex'; }
