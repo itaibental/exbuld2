@@ -111,6 +111,14 @@ const HTMLBuilder = {
         .teacher-comment { background: #fff; }
         .model-answer-secret { margin-top: 10px; border: 1px dashed #f39c12; padding: 10px; background: #fffdf5; border-radius: 4px; font-size: 0.9em; color: #555; }
         
+        /* Sound Check Box Styles */
+        .sound-check-box { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); padding: 15px; border-radius: 8px; margin-bottom: 30px; max-width: 600px; text-align: center; }
+        .sound-check-text { font-size: 0.95em; margin-bottom: 15px; color: #ecf0f1; line-height: 1.5; }
+        .sound-btn { background: #3498db; border: none; padding: 10px 25px; border-radius: 5px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 auto; font-size: 1.1em; transition: background 0.2s, transform 0.1s; width: auto; }
+        .sound-btn:hover { background: #2980b9; }
+        .sound-btn.playing { background: #e74c3c; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
         #highlighterTool { position: fixed; top: 150px; right: 20px; width: 50px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 30px; padding: 15px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10000; border: 1px solid #ddd; transition: opacity 0.3s; }
         .color-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; }
         .color-btn:hover { transform: scale(1.2); }
@@ -124,7 +132,31 @@ const HTMLBuilder = {
         ${embeddedProjectData}
         <div id="highlighterTool"><div class="drag-handle" id="hlDragHandle">:::</div><div class="color-btn" style="background:#ffeb3b;" onclick="setMarker('#ffeb3b', this)" title="צהוב"></div><div class="color-btn" style="background:#a6ff00;" onclick="setMarker('#a6ff00', this)" title="ירוק"></div><div class="color-btn" style="background:#ff4081;" onclick="setMarker('#ff4081', this)" title="ורוד"></div><div class="color-btn" style="background:#00e5ff;" onclick="setMarker('#00e5ff', this)" title="תכלת"></div><div class="color-btn" style="background:#fff; border:1px solid #ccc; display:flex; justify-content:center; align-items:center; font-size:12px;" onclick="setMarker(null, this)" title="בטל מרקר">❌</div></div>
 
-        <div id="startScreen"><h1>${examTitle}</h1><p>משך הבחינה: ${duration} דקות</p><p style="color:#e74c3c;font-weight:bold;margin-bottom:20px;">שים לב: המבחן יתבצע במסך מלא.<br>יציאה ממסך מלא או מעבר לחלון אחר ינעלו את המבחן!</p><button onclick="startExamTimer()" style="padding:15px 30px;font-size:1.5em;background:#27ae60;color:white;border:none;border-radius:10px;">התחל בחינה (מסך מלא)</button></div><div id="timerBadge">זמן: <span id="timerText">--:--</span></div><div id="timesUpModal"><h2>הזמן נגמר!</h2><button onclick="submitExam()">הגש בחינה</button></div><div id="securityModal"><h2>המבחן ננעל!</h2><p style="font-size: 1.5rem;">יצאת ממסך מלא או עברת לחלון אחר.</p><input type="password" id="teacherCodeInput" placeholder="קוד מורה לשחרור"><button onclick="unlockExam()">שחרר</button></div>
+        <div id="startScreen">
+            <h1>${examTitle}</h1>
+            <p style="font-size: 1.2em; margin-bottom: 20px;">משך הבחינה: ${duration} דקות</p>
+            
+            <!-- Sound Check Area -->
+            <div class="sound-check-box">
+                <p class="sound-check-text">
+                    🔊 <strong>בדיקת שמע:</strong><br>
+                    חברו את האוזניות למחשב ובדקו אם יש סאונד.<br>
+                    אם הוא חלש מידי, הגבירו אותו <u>לפני</u> כניסתכם למבחן דרך הגדרות המחשב.<br>
+                    אם אין סאונד - קראו למורה. <br>
+                    <span style="color:#f1c40f; font-size:0.9em; display:block; margin-top:5px; font-weight:bold;">
+                        ⚠️ שימו לב: אין אפשרות להגביר את המחשב מתוך ההגדרות במהלך הבחינה (יציאה ממסך מלא תנעל את המבחן!)
+                    </span>
+                </p>
+                <button id="soundCheckBtn" class="sound-btn" onclick="toggleSoundCheck()">
+                    <span>▶️ נגן צליל בדיקה</span>
+                </button>
+            </div>
+            
+            <p style="color:#e74c3c;font-weight:bold;margin-bottom:20px;">יציאה ממסך מלא או מעבר לחלון אחר ינעלו את המבחן!</p>
+            <button onclick="startExamTimer()" style="padding:15px 30px;font-size:1.5em;background:#27ae60;color:white;border:none;border-radius:10px;">התחל בחינה (מסך מלא)</button>
+        </div>
+        
+        <div id="timerBadge">זמן: <span id="timerText">--:--</span></div><div id="timesUpModal"><h2>הזמן נגמר!</h2><button onclick="submitExam()">הגש בחינה</button></div><div id="securityModal"><h2>המבחן ננעל!</h2><p style="font-size: 1.5rem;">יצאת ממסך מלא או עברת לחלון אחר.</p><input type="password" id="teacherCodeInput" placeholder="קוד מורה לשחרור"><button onclick="unlockExam()">שחרר</button></div>
         
         <div id="successModal">
             <h1>המבחן הוגש בהצלחה!</h1>
@@ -180,7 +212,67 @@ const HTMLBuilder = {
             }
         };
 
+        // --- Sound Check Logic (Web Audio API) ---
+        let audioCtx = null;
+        let isPlayingSound = false;
+        let soundLoopTimeout;
+
+        function toggleSoundCheck() {
+            const btn = document.getElementById('soundCheckBtn');
+            if (isPlayingSound) {
+                stopSoundCheck();
+                btn.innerHTML = '<span>▶️ נגן צליל בדיקה</span>';
+                btn.classList.remove('playing');
+            } else {
+                playSoundCheck();
+                btn.innerHTML = '<span>⏹️ עצור צליל</span>';
+                btn.classList.add('playing');
+            }
+            isPlayingSound = !isPlayingSound;
+        }
+
+        function stopSoundCheck() {
+            if(audioCtx) {
+                audioCtx.close().then(() => { audioCtx = null; });
+            } else {
+                 clearTimeout(soundLoopTimeout);
+            }
+            clearTimeout(soundLoopTimeout);
+        }
+
+        function playSoundCheck() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Simple melody generator
+            const playNote = (freq, time, duration) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start(time);
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.3, time + 0.05); // Attack
+                gain.gain.exponentialRampToValueAtTime(0.001, time + duration); // Decay
+                osc.stop(time + duration);
+            };
+
+            const now = audioCtx.currentTime;
+            // A pleasant major arpeggio
+            playNote(440, now, 0.4);       // A4
+            playNote(554.37, now + 0.2, 0.4); // C#5
+            playNote(659.25, now + 0.4, 0.6); // E5
+            
+            // Loop
+            soundLoopTimeout = setTimeout(() => {
+                if(isPlayingSound) playSoundCheck();
+            }, 1200);
+        }
+
         function startExamTimer(){
+            stopSoundCheck(); // Ensure sound stops when exam starts
             document.documentElement.requestFullscreen().catch(e=>console.log(e));
             document.getElementById('startScreen').style.display='none';
             document.getElementById('mainContainer').style.filter='none';
