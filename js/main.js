@@ -19,6 +19,7 @@ const App = {
         }
     },
 
+    // --- Save & Load Project Logic ---
     saveProject: function() {
         try {
             const projectData = {
@@ -211,6 +212,7 @@ const App = {
         document.getElementById('questionsList').style.display = 'block';
     },
 
+    // --- Updated Edit Question with Video Controls ---
     editQuestion: function(id) {
         const q = ExamState.questions.find(q => q.id === id);
         if (!q) return;
@@ -222,7 +224,7 @@ const App = {
         if(UI.elements.qEmbed) UI.elements.qEmbed.value = q.embedCode || ''; 
         UI.elements.qImage.value = q.imageUrl || '';
         
-        // Load video controls settings if they exist, otherwise defaults
+        // Load video controls
         const controls = q.videoControls || { download: false, fullscreen: false, playbackrate: true, pip: false };
         if(document.getElementById('vc-download')) document.getElementById('vc-download').checked = controls.download;
         if(document.getElementById('vc-fullscreen')) document.getElementById('vc-fullscreen').checked = controls.fullscreen;
@@ -301,10 +303,8 @@ const App = {
         if (part) {
             UI.elements.partNameInput.value = part.name;
             UI.elements.partNameLabel.textContent = part.name;
-            
             const instructions = ExamState.instructions.parts[selectedPartId] || '';
             UI.elements.partInstructions.value = instructions;
-            
             this.setTab(selectedPartId);
         }
     },
@@ -312,12 +312,9 @@ const App = {
     setTab: function(partId) {
         ExamState.currentTab = partId;
         UI.renderTabs();
-        
         const instructions = ExamState.instructions.parts[partId] || '';
         if(UI.elements.partInstructions) UI.elements.partInstructions.value = instructions;
-        
         UI.updatePartInstructionsInput(instructions);
-
         if(UI.elements.qPart.value !== partId) {
             UI.elements.qPart.value = partId;
             const part = ExamState.parts.find(p => p.id === partId);
@@ -334,32 +331,24 @@ const App = {
         let suffix = "";
         if (nextIdx < ExamState.partNamesList.length) suffix = ExamState.partNamesList[nextIdx];
         else suffix = (nextIdx + 1).toString();
-        
         const newId = ExamState.getNextPartId();
         const newName = "חלק " + suffix;
-        
         ExamState.addPart({ id: newId, name: newName });
         UI.renderPartSelector();
         UI.renderTabs();
         UI.updateStats();
-        
         UI.elements.qPart.value = newId;
         this.onPartSelectChange();
         UI.showToast(`חלק חדש נוסף: ${newName}`);
     },
 
     removePart: function() {
-        if (ExamState.parts.length <= 1) {
-            UI.showToast('חייב להישאר לפחות חלק אחד בבחינה.', 'error');
-            return;
-        }
+        if (ExamState.parts.length <= 1) { UI.showToast('חייב להישאר לפחות חלק אחד בבחינה.', 'error'); return; }
         const partIdToRemove = UI.elements.qPart.value;
         const partName = ExamState.parts.find(p => p.id === partIdToRemove).name;
-        
         UI.showConfirm('מחיקת חלק', `האם למחוק את "${partName}"? השאלות בחלק זה יימחקו.`, () => {
             ExamState.removePart(partIdToRemove);
             if (ExamState.parts.length > 0) ExamState.currentTab = ExamState.parts[0].id;
-            
             UI.renderPartSelector();
             UI.renderTabs();
             UI.updateStats();
@@ -388,6 +377,7 @@ const App = {
         if(UI.elements.partInstructions) UI.elements.partInstructions.value = value;
     },
 
+    // --- Updated Add Question with Video Controls ---
     addQuestion: function() {
         const text = UI.elements.qText.value.trim();
         const modelAnswer = UI.elements.qModelAnswer.value.trim();
@@ -405,10 +395,7 @@ const App = {
             pip: document.getElementById('vc-pip')?.checked || false
         };
 
-        if (!text) {
-            UI.showToast('אנא הכנס תוכן לשאלה', 'error');
-            return;
-        }
+        if (!text) { UI.showToast('אנא הכנס תוכן לשאלה', 'error'); return; }
 
         if (ExamState.tempSubQuestions.length > 0) {
             points = ExamState.tempSubQuestions.reduce((acc, curr) => acc + (curr.points || 0), 0);
@@ -429,7 +416,7 @@ const App = {
         UI.elements.qEmbed.value = ''; 
         UI.elements.qImage.value = '';
         
-        // Reset video controls to defaults
+        // Reset defaults
         if(document.getElementById('vc-download')) document.getElementById('vc-download').checked = false;
         if(document.getElementById('vc-fullscreen')) document.getElementById('vc-fullscreen').checked = false;
         if(document.getElementById('vc-playbackrate')) document.getElementById('vc-playbackrate').checked = true;
