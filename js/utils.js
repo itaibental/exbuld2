@@ -1,5 +1,4 @@
 const Utils = {
-    // זיהוי אם הקישור הוא לקובץ וידאו ישיר
     isHTML5Video: function(url) {
         if(!url) return false;
         return /\.(mp4|webm|ogg|mov)($|\?)/i.test(url);
@@ -7,20 +6,15 @@ const Utils = {
 
     getVideoEmbedUrl: function(url) {
         if (!url) return null;
-        
-        // Google Drive Link
         const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
         if (driveMatch && url.includes('drive.google.com')) {
             return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
         }
-        
-        // YouTube Link (Fixed for Error 153)
         const iframeMatch = url.match(/src=["'](.*?)["']/);
         const link = iframeMatch ? iframeMatch[1] : url;
         const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?"]*).*/;
         const ytMatch = link.match(ytRegExp);
         if (ytMatch && ytMatch[2].length === 11) {
-            // שינוי ל-youtube.com רגיל למניעת שגיאות נגן
             return `https://www.youtube.com/embed/${ytMatch[2]}?rel=0`;
         }
         return null;
@@ -46,58 +40,39 @@ const Utils = {
     },
 
     setupResizers: function() {
-        // ... (המשך קוד ה-Resizers ללא שינוי)
-        const resizerRight = document.getElementById('dragHandleRight');
-        const rightCol = document.getElementById('rightPanel');
-        if (resizerRight && rightCol) {
-            resizerRight.addEventListener('mousedown', (e) => {
+        const setup = (handleId, panelId, isRight) => {
+            const handle = document.getElementById(handleId);
+            const panel = document.getElementById(panelId);
+            if(!handle || !panel) return;
+            
+            handle.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 document.body.style.cursor = 'col-resize';
                 document.body.style.userSelect = 'none';
-                resizerRight.classList.add('resizing');
-                const onMove = (e) => {
-                    const newWidth = window.innerWidth - e.clientX;
-                    if (newWidth > 200 && newWidth < window.innerWidth * 0.6) {
-                        rightCol.style.width = newWidth + 'px';
-                        rightCol.style.flex = 'none';
+                handle.classList.add('resizing');
+                
+                const onMove = (ev) => {
+                    const width = isRight ? window.innerWidth - ev.clientX : ev.clientX;
+                    if(width > 200 && width < window.innerWidth * 0.6) {
+                        panel.style.width = width + 'px';
+                        panel.style.flex = 'none';
                     }
                 };
+                
                 const onUp = () => {
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
-                    document.body.style.cursor = 'default';
+                    document.body.style.cursor = '';
                     document.body.style.userSelect = '';
-                    resizerRight.classList.remove('resizing');
+                    handle.classList.remove('resizing');
                 };
+                
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onUp);
             });
-        }
-        const resizerLeft = document.getElementById('dragHandleLeft');
-        const leftCol = document.getElementById('leftPanel');
-        if (resizerLeft && leftCol) {
-            resizerLeft.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                document.body.style.cursor = 'col-resize';
-                document.body.style.userSelect = 'none';
-                resizerLeft.classList.add('resizing');
-                const onMove = (e) => {
-                    const newWidth = e.clientX;
-                    if (newWidth > 150 && newWidth < window.innerWidth * 0.4) {
-                        leftCol.style.width = newWidth + 'px';
-                        leftCol.style.flex = 'none';
-                    }
-                };
-                const onUp = () => {
-                    document.removeEventListener('mousemove', onMove);
-                    document.removeEventListener('mouseup', onUp);
-                    document.body.style.cursor = 'default';
-                    document.body.style.userSelect = '';
-                    resizerLeft.classList.remove('resizing');
-                };
-                document.addEventListener('mousemove', onMove);
-                document.addEventListener('mouseup', onUp);
-            });
-        }
+        };
+        
+        setup('dragHandleRight', 'rightPanel', true);
+        setup('dragHandleLeft', 'leftPanel', false);
     }
 };
