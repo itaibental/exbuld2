@@ -1,8 +1,8 @@
 const UI = {
-    elements: {}, // Will be populated on init
+    elements: {},
     
     initElements: function() {
-        const idList = [
+        const ids = [
             'qPart', 'partNameInput', 'partInstructions', 'partNameLabel', 
             'qPoints', 'qText', 'qModelAnswer', 'qVideo', 'qEmbed', 'qImage', 
             'previewQuestionsContainer', 'statsContainer', 'totalPoints', 
@@ -11,21 +11,21 @@ const UI = {
             'previewExamTitle', 'previewLogo', 'examDurationInput', 
             'unlockCodeInput', 'teacherEmailInput', 'driveFolderInput', 
             'subQuestionsList', 'mainModelAnswerContainer', 
-            'toastContainer', 'confirmModal',
-            'previewPartInstructions'
+            'toastContainer', 'confirmModal', 'previewPartInstructions',
+            'vc-download', 'vc-fullscreen', 'vc-playbackrate', 'vc-pip'
         ];
-        idList.forEach(id => {
+        ids.forEach(id => {
             const el = document.getElementById(id);
             if(el) this.elements[id] = el;
         });
     },
 
-    showToast: function(message, type = 'success') {
+    showToast: function(msg, type = 'success') {
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.textContent = message;
+        toast.textContent = msg;
         this.elements.toastContainer.appendChild(toast);
-        void toast.offsetWidth; // Trigger reflow
+        void toast.offsetWidth; // Reflow
         toast.classList.add('visible');
         setTimeout(() => {
             toast.classList.remove('visible');
@@ -79,7 +79,6 @@ const UI = {
         const container = this.elements.statsContainer;
         container.innerHTML = '';
         let total = 0;
-        
         ExamState.parts.forEach(p => {
             const count = ExamState.questions.filter(q => q.part === p.id).length;
             const div = document.createElement('div');
@@ -87,7 +86,6 @@ const UI = {
             div.innerHTML = `<span>${p.name}:</span> <span>${count}</span>`;
             container.appendChild(div);
         });
-
         ExamState.questions.forEach(q => total += q.points);
         this.elements.totalPoints.textContent = total;
     },
@@ -98,11 +96,7 @@ const UI = {
         const filtered = ExamState.questions.filter(q => q.part === currentPartId);
         
         if (filtered.length === 0) {
-            container.innerHTML = `
-            <div style="text-align: center; color: #bdc3c7; margin-top: 50px;">
-                <h3>עדיין אין שאלות בחלק זה</h3>
-                <p>הוסף שאלות מהתפריט הימני</p>
-            </div>`;
+            container.innerHTML = `<div style="text-align: center; color: #bdc3c7; margin-top: 50px;"><h3>עדיין אין שאלות בחלק זה</h3></div>`;
             return;
         }
 
@@ -110,30 +104,19 @@ const UI = {
             let mediaHTML = '';
             let vidId = `vid-preview-${q.id}`;
             
-            // 1. Embed Code
             if (q.embedCode) {
                 let safeEmbed = q.embedCode.replace(/allowfullscreen/gi, '');
                 mediaHTML += `<div class="media-container embed-container">${safeEmbed}</div>`;
-            } 
-            // 2. HTML5 Video (New)
-            else if (Utils.isHTML5Video(q.videoUrl)) {
-                // Generate controlsList based on stored settings
-                const controls = q.videoControls || { download: false, fullscreen: false, playbackrate: true, pip: false };
-                let controlsList = [];
-                if(!controls.download) controlsList.push('nodownload');
-                if(!controls.fullscreen) controlsList.push('nofullscreen');
-                if(!controls.playbackrate) controlsList.push('noplaybackrate');
-                if(!controls.pip) controlsList.push('nopip');
-
-                let extraAttrs = '';
-                if(!controls.pip) extraAttrs += ' disablePictureInPicture';
-
-                mediaHTML += `<div class="video-wrapper" style="padding-bottom:0; height:auto; background:black;">
-                    <video controls playsinline controlsList="${controlsList.join(' ')}" ${extraAttrs} src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
-                </div>`;
-            }
-            // 3. Iframe Embed (YouTube/Drive)
-            else {
+            } else if (Utils.isHTML5Video(q.videoUrl)) {
+                const c = q.videoControls || { download: false, fullscreen: false, playbackrate: true, pip: false };
+                let cl = [];
+                if(!c.download) cl.push('nodownload');
+                if(!c.fullscreen) cl.push('nofullscreen');
+                if(!c.playbackrate) cl.push('noplaybackrate');
+                if(!c.pip) cl.push('nopip');
+                let attrs = !c.pip ? 'disablePictureInPicture' : '';
+                mediaHTML += `<div class="video-wrapper" style="padding-bottom:0; height:auto; background:black;"><video controls playsinline controlsList="${cl.join(' ')}" ${attrs} src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video></div>`;
+            } else {
                 const embedSrc = Utils.getVideoEmbedUrl(q.videoUrl);
                 if (embedSrc) mediaHTML += `<div class="video-wrapper"><iframe src="${embedSrc}" frameborder="0"></iframe></div>`;
             }
@@ -141,25 +124,21 @@ const UI = {
             const imgSrc = Utils.getImageSrc(q.imageUrl);
             if (imgSrc) mediaHTML += `<div class="image-wrapper"><img src="${imgSrc}" alt="Question Image"></div>`;
 
-            let subQuestionsHTML = '';
-            let modelAnsPreview = '';
-
+            let contentHTML = '';
             if (q.subQuestions && q.subQuestions.length > 0) {
-                subQuestionsHTML = q.subQuestions.map((sq, si) => {
+                contentHTML = q.subQuestions.map((sq, si) => {
                     const label = ExamState.subLabels[si] || (si + 1);
                     return `<div class="preview-sub-q">
                         <div class="preview-sub-badge">${label}' (${sq.points} נק')</div>
-                        <div style="margin-bottom:10px;">${sq.text}</div>
-                        <div class="preview-input" style="height:8vh;">תשובה לסעיף...</div>
-                        ${sq.modelAnswer ? `<div style="background:#fff3cd; padding:0.5vh; margin-top:0.5vh; border-radius:0.4em; font-size:0.8rem; color:#856404; border:1px solid #ffeeba;"><strong>👁️ מחוון:</strong> ${sq.modelAnswer}</div>` : ''}
+                        <div class="q-text">${sq.text}</div>
+                        <div class="preview-input" style="height:60px;">תשובה...</div>
                     </div>`;
                 }).join('');
             } else {
-                modelAnsPreview = q.modelAnswer ? `<div style="background:#fff3cd; padding:1vh; margin-top:1vh; border-radius:0.4em; font-size:0.9rem; color:#856404; border:1px solid #ffeeba;"><strong>👁️ מחוון למורה:</strong> ${q.modelAnswer}</div>` : '';
+                contentHTML = `<div class="preview-input">תיבת טקסט...</div>`;
             }
 
-            return `
-            <div class="question-card">
+            return `<div class="question-card">
                 <div class="card-actions">
                     <button class="btn-edit" onclick="App.editQuestion(${q.id})">✏️ עריכה</button>
                     <button class="btn-delete" onclick="App.deleteQuestion(${q.id})">🗑️ הסרה</button>
@@ -167,8 +146,7 @@ const UI = {
                 <div class="badge">שאלה ${idx + 1} • ${q.points} נקודות</div>
                 <div class="q-text">${q.text}</div>
                 ${mediaHTML}
-                ${q.subQuestions && q.subQuestions.length > 0 ? subQuestionsHTML : '<div class="preview-input">תיבת טקסט לתשובת התלמיד...</div>'}
-                ${modelAnsPreview}
+                ${contentHTML}
             </div>`;
         }).join('');
 
@@ -195,8 +173,8 @@ const UI = {
             list.appendChild(row);
         });
 
+        const total = ExamState.tempSubQuestions.reduce((acc, curr) => acc + (curr.points || 0), 0);
         if (ExamState.tempSubQuestions.length > 0) {
-            const total = ExamState.tempSubQuestions.reduce((acc, curr) => acc + (curr.points || 0), 0);
             this.elements.qPoints.value = total;
             this.elements.qPoints.disabled = true;
             this.elements.mainModelAnswerContainer.style.display = 'none';
