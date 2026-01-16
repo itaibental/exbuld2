@@ -1,5 +1,43 @@
+// Global helpers for injected teacher view
+window.ExamFunctions = {
+    calcTotal: function() {
+        const view = document.getElementById('submittedExamView');
+        if(!view) return;
+        let t = 0;
+        view.querySelectorAll('.grade-input').forEach(i => { if(i.value) t += parseFloat(i.value); });
+        const display = view.querySelector('#teacherCalculatedScore');
+        if(display) display.innerText = t;
+    },
+    saveGradedExam: function() {
+        const view = document.getElementById('submittedExamView');
+        if(!view) return;
+        view.querySelectorAll('input, textarea').forEach(i => i.setAttribute('value', i.value));
+        view.querySelectorAll('textarea').forEach(t => t.innerHTML = t.value);
+        const content = view.innerHTML;
+        const studentName = view.querySelector('#studentNameField')?.value || 'student';
+        const html = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>בדוק-${studentName}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap"><style>body{font-family:'Rubik',sans-serif;background:#f4f6f8;margin:0;padding:2%;} .container{max-width:800px;margin:0 auto;background:white;padding:5%;} .teacher-controls{display:none!important;}</style></head><body><div class="container">${content}</div></body></html>`;
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], {type:'text/html'})); a.download = "בדוק-"+studentName+".html"; a.click();
+    },
+    exportToDoc: function() {
+        const view = document.getElementById('submittedExamView');
+        if(!view) return;
+        const name = view.querySelector('#studentNameField')?.value || '';
+        const score = view.querySelector('#teacherCalculatedScore')?.innerText || '0';
+        let content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset="utf-8"></head><body><h1>מבחן בדוק: ${name}</h1><h2>ציון: ${score}</h2>`;
+        view.querySelectorAll('.q-block, .sub-question-block').forEach((block,i) => {
+             const text = (block.querySelector('.q-content')||block.querySelector('.sub-q-text'))?.innerText;
+             const ans = block.querySelector('.student-ans')?.value;
+             const grade = block.querySelector('.grade-input')?.value;
+             const comm = block.querySelector('.teacher-comment')?.value;
+             content += `<p><strong>שאלה/סעיף:</strong> ${text}</p><p>תשובה: ${ans}</p><p style='color:red'>ציון: ${grade} | הערה: ${comm}</p><hr>`;
+        });
+        content += '</body></html>';
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff', content], {type:'application/msword'})); a.download = "בדוק-"+name+".doc"; a.click();
+    }
+};
+
 const App = {
-    activeFormatInput: null, 
+    activeFormatInput: null,
 
     init: function() {
         UI.initElements();
@@ -12,195 +50,121 @@ const App = {
         
         const confirmBtn = document.getElementById('btnConfirmYes');
         if(confirmBtn) {
-            confirmBtn.onclick = function() {
-                if (UI.confirmCallback) UI.confirmCallback();
-                UI.closeModal();
-            };
+            confirmBtn.onclick = () => { if (UI.confirmCallback) UI.confirmCallback(); UI.closeModal(); };
         }
     },
 
-    // --- Save & Load Project Logic ---
     saveProject: function() {
-        try {
-            const projectData = {
-                state: ExamState,
-                meta: {
-                    duration: UI.elements.examDurationInput?.value || 90,
-                    unlockCode: UI.elements.unlockCodeInput?.value || '',
-                    teacherEmail: UI.elements.teacherEmailInput?.value || '',
-                    driveLink: UI.elements.driveFolderInput?.value || '',
-                    examTitle: UI.elements.examTitleInput?.value || '',
-                    generalInstructions: UI.elements.examInstructions?.value || ''
-                },
-                timestamp: Date.now()
-            };
-
-            const dataStr = JSON.stringify(projectData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `exam-draft-${Date.now()}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            UI.showToast('טיוטת המבחן נשמרה בהצלחה!');
-        } catch (e) {
-            console.error("Save Error:", e);
-            UI.showToast('שגיאה בשמירת הטיוטה: ' + e.message, 'error');
-        }
+        const projectData = {
+            state: ExamState,
+            meta: {
+                duration: UI.elements.examDurationInput.value,
+                unlockCode: UI.elements.unlockCodeInput.value,
+                teacherEmail: UI.elements.teacherEmailInput.value,
+                driveLink: UI.elements.driveFolderInput.value,
+                examTitle: UI.elements.examTitleInput.value,
+                generalInstructions: UI.elements.examInstructions.value
+            },
+            timestamp: Date.now()
+        };
+        const blob = new Blob([JSON.stringify(projectData)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `exam-draft.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        UI.showToast('טיוטה נשמרה!');
     },
 
     handleProjectLoad: function(event) {
         const file = event.target.files[0];
-        if (!file) return;
-        
+        if(!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                let loaded;
-                
-                if (file.name.endsWith('.html')) {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(e.target.result, 'text/html');
-                    const scriptTag = doc.getElementById('exam-engine-data');
-                    if (scriptTag && scriptTag.textContent) {
-                        loaded = JSON.parse(scriptTag.textContent);
-                    } else {
-                        throw new Error("לא נמצא מידע פרויקט בקובץ ה-HTML זה.");
-                    }
-                } else {
-                    loaded = JSON.parse(e.target.result);
+                let loaded = JSON.parse(e.target.result); // Default JSON
+                if(file.name.endsWith('.html')) {
+                     const parser = new DOMParser();
+                     const doc = parser.parseFromString(e.target.result, 'text/html');
+                     const script = doc.getElementById('exam-engine-data');
+                     if(script) loaded = JSON.parse(script.textContent);
                 }
                 
-                if (!loaded.state || !loaded.state.questions) {
-                    throw new Error("קובץ לא תקין");
-                }
-
                 ExamState.questions = loaded.state.questions;
                 ExamState.parts = loaded.state.parts;
-                ExamState.currentTab = loaded.state.parts[0]?.id || 'A';
-                ExamState.studentName = loaded.state.studentName || '';
-                ExamState.examTitle = loaded.state.examTitle || 'מבחן בגרות';
+                ExamState.currentTab = loaded.state.parts[0].id;
+                ExamState.studentName = loaded.state.studentName;
+                ExamState.examTitle = loaded.state.examTitle;
                 ExamState.logoData = loaded.state.logoData;
                 ExamState.solutionDataUrl = loaded.state.solutionDataUrl;
                 ExamState.instructions = loaded.state.instructions;
-
-                if (loaded.meta) {
-                    if (UI.elements.examDurationInput) UI.elements.examDurationInput.value = loaded.meta.duration || 90;
-                    if (UI.elements.unlockCodeInput) UI.elements.unlockCodeInput.value = loaded.meta.unlockCode || '';
-                    if (UI.elements.teacherEmailInput) UI.elements.teacherEmailInput.value = loaded.meta.teacherEmail || '';
-                    if (UI.elements.driveFolderInput) UI.elements.driveFolderInput.value = loaded.meta.driveLink || '';
-                    if (UI.elements.examTitleInput) UI.elements.examTitleInput.value = loaded.meta.examTitle || '';
-                    if (UI.elements.examInstructions) UI.elements.examInstructions.value = loaded.meta.generalInstructions || '';
-                }
-
-                if (ExamState.logoData && UI.elements.previewLogo) {
-                    UI.elements.previewLogo.src = ExamState.logoData;
-                    UI.elements.previewLogo.style.display = 'block';
-                }
                 
-                if (UI.elements.previewExamTitle) UI.elements.previewExamTitle.textContent = ExamState.examTitle;
-                App.updateInstructionsPreview(); 
+                // Restore UI inputs
+                UI.elements.examDurationInput.value = loaded.meta.duration;
+                UI.elements.unlockCodeInput.value = loaded.meta.unlockCode;
+                UI.elements.teacherEmailInput.value = loaded.meta.teacherEmail;
+                UI.elements.driveFolderInput.value = loaded.meta.driveLink;
+                UI.elements.examTitleInput.value = loaded.meta.examTitle;
+                UI.elements.examInstructions.value = loaded.meta.generalInstructions;
 
-                UI.renderPartSelector();
-                UI.renderTabs();
-                UI.updateStats();
-                App.setTab(ExamState.currentTab);
-                UI.renderPreview();
-                
-                UI.showToast('המבחן נטען בהצלחה!');
+                if(ExamState.logoData) UI.elements.previewLogo.src = ExamState.logoData;
+                UI.elements.previewExamTitle.textContent = ExamState.examTitle;
+                App.updateInstructionsPreview();
 
-            } catch (err) {
-                console.error(err);
-                UI.showToast('שגיאה בטעינת הקובץ: ' + err.message, 'error');
-            }
+                UI.renderPartSelector(); UI.renderTabs(); UI.updateStats(); App.setTab(ExamState.currentTab);
+                UI.showToast('נטען בהצלחה!');
+            } catch(err) { UI.showToast('שגיאה בטעינה', 'error'); }
         };
         reader.readAsText(file);
-        event.target.value = ''; 
+        event.target.value = '';
     },
 
     handleSubmittedExamLoad: function(event) {
         const file = event.target.files[0];
-        if (!file) return;
-
+        if(!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
-            try {
-                const rawContent = e.target.result;
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(rawContent, 'text/html');
+            const raw = e.target.result;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(raw, 'text/html');
+            
+            // Extract Content
+            const mainContainer = doc.getElementById('mainContainer');
+            if(!mainContainer) { UI.showToast('קובץ לא תקין', 'error'); return; }
 
-                let styles = doc.querySelector('style')?.textContent || '';
-                styles = styles.replace(/\.container/g, '.student-exam-container');
-                styles = styles.replace(/body\s*{([^}]*)}/g, '.student-exam-wrapper { $1 }');
+            // Hide Editor
+            document.getElementById('questionsList').style.display = 'none';
 
-                const mainContainer = doc.getElementById('mainContainer');
-                if(!mainContainer) throw new Error("מבנה קובץ לא תקין");
-                
-                mainContainer.className = mainContainer.className.replace('container', 'student-exam-container');
-                
-                const questionsList = document.getElementById('questionsList');
-                questionsList.style.display = 'none';
-
-                let viewContainer = document.getElementById('submittedExamView');
-                if(!viewContainer) {
-                    viewContainer = document.createElement('div');
-                    viewContainer.id = 'submittedExamView';
-                    viewContainer.className = 'student-exam-wrapper'; 
-                    document.querySelector('.col-middle').appendChild(viewContainer);
-                }
-                viewContainer.style.display = 'block';
-
-                viewContainer.innerHTML = `
-                    <style>${styles}</style>
-                    <div class="review-toolbar" style="background:#2c3e50; color:white; padding:10px; margin-bottom:20px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                        <strong>מצב בדיקה</strong>
-                        <button onclick="App.closeSubmittedView()" style="background:#e74c3c; color:white; border:none; padding:5px 15px; border-radius:4px; cursor:pointer;">סגור חזרה לעריכה</button>
-                    </div>
-                    ${mainContainer.outerHTML}
-                `;
-
-                const container = viewContainer.querySelector('.student-exam-container');
-                if(container) container.style.filter = 'none'; 
-
-                viewContainer.querySelectorAll('.exam-section').forEach(sect => {
-                    sect.style.display = 'block';
-                    sect.style.borderBottom = "2px dashed #ccc";
-                    sect.style.paddingBottom = "20px";
-                    sect.style.marginBottom = "20px";
-                });
-                
-                const internalTabs = viewContainer.querySelector('.tabs');
-                if(internalTabs) internalTabs.style.display = 'none';
-
-                const teacherControls = viewContainer.querySelector('.teacher-controls');
-                if(teacherControls) teacherControls.style.display = 'block';
-                
-                viewContainer.querySelectorAll('.grading-area, .model-answer-secret').forEach(el => el.style.display = 'block');
-                
-                viewContainer.querySelectorAll('input, textarea').forEach(el => {
-                    el.disabled = false;
-                    el.removeAttribute('readonly');
-                    if(el.classList.contains('grade-input')) {
-                        el.setAttribute('oninput', 'window.ExamFunctions.calcTotal()');
-                    }
-                });
-
-                const saveBtn = viewContainer.querySelector('button[onclick*="saveGradedExam"]');
-                if(saveBtn) saveBtn.setAttribute('onclick', 'window.ExamFunctions.saveGradedExam()');
-                
-                const exportBtn = viewContainer.querySelector('button[onclick*="exportToDoc"]');
-                if(exportBtn) exportBtn.setAttribute('onclick', 'window.ExamFunctions.exportToDoc()');
-
-                window.ExamFunctions.calcTotal();
-
-                UI.showToast('המבחן נטען לבדיקה');
-
-            } catch (err) {
-                console.error(err);
-                UI.showToast('שגיאה בטעינת הקובץ: ' + err.message, 'error');
+            // Create/Show View
+            let view = document.getElementById('submittedExamView');
+            if(!view) {
+                view = document.createElement('div');
+                view.id = 'submittedExamView';
+                document.querySelector('.col-middle').appendChild(view);
             }
+            view.style.display = 'block';
+            
+            // Inject content
+            view.innerHTML = `
+                <div class="review-toolbar"><strong>מצב בדיקה</strong> <button onclick="App.closeSubmittedView()" style="background:#e74c3c;border:none;color:white;padding:5px;">סגור</button></div>
+                ${mainContainer.innerHTML}
+            `;
+
+            // Enable Controls
+            view.querySelector('.teacher-controls').style.display = 'block';
+            view.querySelectorAll('.grading-area, .model-answer-secret').forEach(e => e.style.display='block');
+            view.querySelectorAll('.exam-section').forEach(e => e.style.display='block');
+            view.querySelectorAll('.tabs').forEach(e => e.style.display='none');
+            
+            view.querySelectorAll('input, textarea').forEach(el => {
+                el.disabled = false; el.removeAttribute('readonly');
+                if(el.classList.contains('grade-input')) el.setAttribute('oninput', 'window.ExamFunctions.calcTotal()');
+            });
+
+            // Re-bind buttons
+            const saveBtn = view.querySelector('button[onclick*="saveGradedExam"]');
+            if(saveBtn) saveBtn.setAttribute('onclick', 'window.ExamFunctions.saveGradedExam()');
+            const expBtn = view.querySelector('button[onclick*="exportToDoc"]');
+            if(expBtn) expBtn.setAttribute('onclick', 'window.ExamFunctions.exportToDoc()');
+
+            window.ExamFunctions.calcTotal();
+            UI.showToast('נטען לבדיקה');
         };
         reader.readAsText(file);
         event.target.value = '';
@@ -212,182 +176,47 @@ const App = {
         document.getElementById('questionsList').style.display = 'block';
     },
 
-    // --- Updated Edit Question with Video Controls ---
+    // --- Editing & Adding ---
     editQuestion: function(id) {
         const q = ExamState.questions.find(q => q.id === id);
-        if (!q) return;
-
+        if(!q) return;
+        
         UI.elements.qText.value = q.text;
         UI.elements.qPoints.value = q.points;
         UI.elements.qModelAnswer.value = q.modelAnswer || '';
         UI.elements.qVideo.value = q.videoUrl || '';
-        if(UI.elements.qEmbed) UI.elements.qEmbed.value = q.embedCode || ''; 
+        UI.elements.qEmbed.value = q.embedCode || '';
         UI.elements.qImage.value = q.imageUrl || '';
         
-        // Load video controls
-        const controls = q.videoControls || { download: false, fullscreen: false, playbackrate: true, pip: false };
-        if(document.getElementById('vc-download')) document.getElementById('vc-download').checked = controls.download;
-        if(document.getElementById('vc-fullscreen')) document.getElementById('vc-fullscreen').checked = controls.fullscreen;
-        if(document.getElementById('vc-playbackrate')) document.getElementById('vc-playbackrate').checked = controls.playbackrate;
-        if(document.getElementById('vc-pip')) document.getElementById('vc-pip').checked = controls.pip;
+        // Restore controls
+        const c = q.videoControls || {download:false, fullscreen:false, playbackrate:true, pip:false};
+        if(document.getElementById('vc-download')) document.getElementById('vc-download').checked = c.download;
+        if(document.getElementById('vc-fullscreen')) document.getElementById('vc-fullscreen').checked = c.fullscreen;
+        if(document.getElementById('vc-playbackrate')) document.getElementById('vc-playbackrate').checked = c.playbackrate;
+        if(document.getElementById('vc-pip')) document.getElementById('vc-pip').checked = c.pip;
 
         ExamState.tempSubQuestions = q.subQuestions ? [...q.subQuestions] : [];
         UI.renderSubQuestionInputs();
-
-        if (q.part !== ExamState.currentTab) {
-            this.setTab(q.part);
-        }
-        UI.elements.qPart.value = q.part; 
+        
+        if(q.part !== ExamState.currentTab) App.setTab(q.part);
+        UI.elements.qPart.value = q.part;
 
         ExamState.removeQuestion(id);
         UI.updateStats();
         UI.renderPreview();
-        
-        const rightPanel = document.getElementById('rightPanel');
-        if(rightPanel) rightPanel.scrollTop = 0;
-        UI.elements.qText.focus();
-        UI.showToast('השאלה נטענה לעריכה.');
+        document.getElementById('rightPanel').scrollTop = 0;
+        UI.showToast('שאלה בטעינה לעריכה');
     },
 
-    setupTextFormatting: function() {
-        const tooltip = document.getElementById('textFormatTooltip');
-        
-        document.addEventListener('mousedown', (e) => {
-            if (e.target.closest('#textFormatTooltip')) return; 
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            tooltip.style.display = 'none';
-        });
-
-        const handleInputInteraction = (e) => {
-            const target = e.target;
-            if ((target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && target.type === 'text')) && 
-                (target.closest('#rightPanel') || target.id === 'previewPartInstructions')) {
-                
-                this.activeFormatInput = target;
-                const rect = target.getBoundingClientRect();
-                tooltip.style.left = `${rect.left}px`;
-                tooltip.style.top = `${rect.top - 40}px`; 
-                tooltip.style.display = 'flex'; 
-            }
-        };
-
-        document.addEventListener('focusin', handleInputInteraction);
-        document.addEventListener('mouseup', handleInputInteraction);
-    },
-
-    applyFormat: function(tag) {
-        if (!this.activeFormatInput) return;
-        
-        const el = this.activeFormatInput;
-        const start = el.selectionStart;
-        const end = el.selectionEnd;
-        const text = el.value;
-        const selectedText = text.substring(start, end);
-        
-        if (!selectedText) {
-            UI.showToast('אנא סמן טקסט לעיצוב', 'error');
-            return;
-        }
-
-        const newText = text.substring(0, start) + `<${tag}>${selectedText}</${tag}>` + text.substring(end);
-        el.value = newText;
-
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.focus();
-        el.setSelectionRange(start, end + tag.length * 2 + 5); 
-    },
-
-    onPartSelectChange: function() {
-        const selectedPartId = UI.elements.qPart.value;
-        const part = ExamState.parts.find(p => p.id === selectedPartId);
-        if (part) {
-            UI.elements.partNameInput.value = part.name;
-            UI.elements.partNameLabel.textContent = part.name;
-            const instructions = ExamState.instructions.parts[selectedPartId] || '';
-            UI.elements.partInstructions.value = instructions;
-            this.setTab(selectedPartId);
-        }
-    },
-
-    setTab: function(partId) {
-        ExamState.currentTab = partId;
-        UI.renderTabs();
-        const instructions = ExamState.instructions.parts[partId] || '';
-        if(UI.elements.partInstructions) UI.elements.partInstructions.value = instructions;
-        UI.updatePartInstructionsInput(instructions);
-        if(UI.elements.qPart.value !== partId) {
-            UI.elements.qPart.value = partId;
-            const part = ExamState.parts.find(p => p.id === partId);
-            if(part) {
-                UI.elements.partNameInput.value = part.name;
-                UI.elements.partNameLabel.textContent = part.name;
-            }
-        }
-        UI.renderPreview();
-    },
-
-    addPart: function() {
-        const nextIdx = ExamState.parts.length;
-        let suffix = "";
-        if (nextIdx < ExamState.partNamesList.length) suffix = ExamState.partNamesList[nextIdx];
-        else suffix = (nextIdx + 1).toString();
-        const newId = ExamState.getNextPartId();
-        const newName = "חלק " + suffix;
-        ExamState.addPart({ id: newId, name: newName });
-        UI.renderPartSelector();
-        UI.renderTabs();
-        UI.updateStats();
-        UI.elements.qPart.value = newId;
-        this.onPartSelectChange();
-        UI.showToast(`חלק חדש נוסף: ${newName}`);
-    },
-
-    removePart: function() {
-        if (ExamState.parts.length <= 1) { UI.showToast('חייב להישאר לפחות חלק אחד בבחינה.', 'error'); return; }
-        const partIdToRemove = UI.elements.qPart.value;
-        const partName = ExamState.parts.find(p => p.id === partIdToRemove).name;
-        UI.showConfirm('מחיקת חלק', `האם למחוק את "${partName}"? השאלות בחלק זה יימחקו.`, () => {
-            ExamState.removePart(partIdToRemove);
-            if (ExamState.parts.length > 0) ExamState.currentTab = ExamState.parts[0].id;
-            UI.renderPartSelector();
-            UI.renderTabs();
-            UI.updateStats();
-            this.onPartSelectChange();
-            UI.renderPreview();
-            UI.showToast(`החלק "${partName}" נמחק`);
-        });
-    },
-
-    updatePartName: function() {
-        ExamState.updatePartName(UI.elements.qPart.value, UI.elements.partNameInput.value);
-        UI.elements.partNameLabel.textContent = UI.elements.partNameInput.value;
-        UI.renderTabs();
-        UI.renderPartSelector();
-        UI.updateStats();
-    },
-
-    savePartInstructions: function() {
-        const val = UI.elements.partInstructions.value;
-        ExamState.instructions.parts[UI.elements.qPart.value] = val;
-        UI.updatePartInstructionsInput(val);
-    },
-
-    updatePartInstructionsFromPreview: function(value) {
-        ExamState.instructions.parts[ExamState.currentTab] = value;
-        if(UI.elements.partInstructions) UI.elements.partInstructions.value = value;
-    },
-
-    // --- Updated Add Question with Video Controls ---
     addQuestion: function() {
         const text = UI.elements.qText.value.trim();
-        const modelAnswer = UI.elements.qModelAnswer.value.trim();
-        const part = UI.elements.qPart.value;
-        const videoUrl = UI.elements.qVideo.value.trim();
-        const embedCode = UI.elements.qEmbed.value.trim(); 
-        const imageUrl = UI.elements.qImage.value.trim();
+        if(!text) { UI.showToast('חסר תוכן', 'error'); return; }
+
         let points = parseInt(UI.elements.qPoints.value) || 0;
-        
-        // Capture video control settings
+        if(ExamState.tempSubQuestions.length > 0) {
+            points = ExamState.tempSubQuestions.reduce((acc,c) => acc+(c.points||0), 0);
+        }
+
         const videoControls = {
             download: document.getElementById('vc-download')?.checked || false,
             fullscreen: document.getElementById('vc-fullscreen')?.checked || false,
@@ -395,119 +224,171 @@ const App = {
             pip: document.getElementById('vc-pip')?.checked || false
         };
 
-        if (!text) { UI.showToast('אנא הכנס תוכן לשאלה', 'error'); return; }
-
-        if (ExamState.tempSubQuestions.length > 0) {
-            points = ExamState.tempSubQuestions.reduce((acc, curr) => acc + (curr.points || 0), 0);
-        }
-
-        const question = {
+        const q = {
             id: Date.now(),
-            part, points, text, modelAnswer, videoUrl, embedCode, imageUrl, videoControls,
+            part: UI.elements.qPart.value,
+            points,
+            text,
+            modelAnswer: UI.elements.qModelAnswer.value.trim(),
+            videoUrl: UI.elements.qVideo.value.trim(),
+            embedCode: UI.elements.qEmbed.value.trim(),
+            imageUrl: UI.elements.qImage.value.trim(),
+            videoControls,
             subQuestions: [...ExamState.tempSubQuestions]
         };
 
-        ExamState.addQuestion(question);
+        ExamState.addQuestion(q);
         
+        // Reset
         UI.elements.qText.value = '';
         UI.elements.qModelAnswer.value = '';
-        UI.elements.qPoints.value = '10';
         UI.elements.qVideo.value = '';
-        UI.elements.qEmbed.value = ''; 
+        UI.elements.qEmbed.value = '';
         UI.elements.qImage.value = '';
-        
-        // Reset defaults
-        if(document.getElementById('vc-download')) document.getElementById('vc-download').checked = false;
-        if(document.getElementById('vc-fullscreen')) document.getElementById('vc-fullscreen').checked = false;
-        if(document.getElementById('vc-playbackrate')) document.getElementById('vc-playbackrate').checked = true;
-        if(document.getElementById('vc-pip')) document.getElementById('vc-pip').checked = false;
-
-        UI.elements.qText.focus();
         ExamState.tempSubQuestions = [];
         UI.renderSubQuestionInputs();
-
         UI.updateStats();
         UI.renderPreview();
-        UI.showToast('השאלה נוספה בהצלחה');
+        UI.showToast('שאלה נוספה');
     },
 
     deleteQuestion: function(id) {
-        UI.showConfirm('מחיקת שאלה', 'האם אתה בטוח שברצונך למחוק שאלה זו?', () => {
+        UI.showConfirm('מחיקה', 'למחוק?', () => {
             ExamState.removeQuestion(id);
             UI.updateStats();
             UI.renderPreview();
-            UI.showToast('השאלה נמחקה');
         });
     },
 
+    // --- Sub Questions ---
     addSubQuestionField: function() {
-        const id = Date.now() + Math.random();
-        ExamState.tempSubQuestions.push({ id, text: '', points: 5, modelAnswer: '' });
+        ExamState.tempSubQuestions.push({ id: Date.now(), text: '', points: 5, modelAnswer: '' });
         UI.renderSubQuestionInputs();
     },
-
     removeSubQuestionField: function(id) {
-        ExamState.tempSubQuestions = ExamState.tempSubQuestions.filter(sq => sq.id !== id);
+        ExamState.tempSubQuestions = ExamState.tempSubQuestions.filter(s => s.id !== id);
         UI.renderSubQuestionInputs();
     },
-
     updateSubQuestionData: function(id, field, value) {
-        const sq = ExamState.tempSubQuestions.find(s => s.id === id);
-        if (sq) {
-            sq[field] = value;
-            if (field === 'points') UI.renderSubQuestionInputs(false);
+        const s = ExamState.tempSubQuestions.find(s => s.id === id);
+        if(s) {
+            s[field] = value;
+            if(field==='points') UI.renderSubQuestionInputs(false); // don't redraw focus
         }
     },
 
+    // --- Inputs ---
     updateExamTitle: function() {
-        ExamState.examTitle = UI.elements.examTitleInput.value.trim() || 'מבחן בגרות';
+        ExamState.examTitle = UI.elements.examTitleInput.value || 'מבחן';
         UI.elements.previewExamTitle.textContent = ExamState.examTitle;
     },
-
     updateInstructionsPreview: function() {
-        const text = UI.elements.examInstructions.value;
-        ExamState.instructions.general = text;
-        if (text.trim()) {
+        const txt = UI.elements.examInstructions.value;
+        ExamState.instructions.general = txt;
+        if(txt) {
             UI.elements.previewInstructionsBox.style.display = 'block';
-            UI.elements.previewInstructionsBox.textContent = text;
+            UI.elements.previewInstructionsBox.textContent = txt;
         } else {
             UI.elements.previewInstructionsBox.style.display = 'none';
         }
     },
-
+    updatePartName: function() {
+        ExamState.updatePartName(UI.elements.qPart.value, UI.elements.partNameInput.value);
+        UI.elements.partNameLabel.textContent = UI.elements.partNameInput.value;
+        UI.renderTabs();
+        UI.renderPartSelector();
+    },
+    savePartInstructions: function() {
+        const val = UI.elements.partInstructions.value;
+        ExamState.instructions.parts[UI.elements.qPart.value] = val;
+        UI.updatePartInstructionsInput(val);
+    },
+    updatePartInstructionsFromPreview: function(val) {
+        ExamState.instructions.parts[ExamState.currentTab] = val;
+        if(UI.elements.partInstructions) UI.elements.partInstructions.value = val;
+    },
     updateFilenamePreview: function() {
-        ExamState.studentName = UI.elements.studentNameInput.value.trim();
-        const name = ExamState.studentName || 'תלמיד';
-        UI.elements.filenamePreview.textContent = `${name} - מבחן.html`;
+        ExamState.studentName = UI.elements.studentNameInput.value;
+        UI.elements.filenamePreview.textContent = (ExamState.studentName || 'תלמיד') + ' - מבחן.html';
     },
 
-    handleLogoUpload: function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                ExamState.logoData = e.target.result;
-                UI.elements.previewLogo.src = ExamState.logoData;
+    // --- Formatting ---
+    setupTextFormatting: function() {
+        const tool = document.getElementById('textFormatTooltip');
+        document.addEventListener('mouseup', e => {
+            const t = e.target;
+            if((t.tagName==='TEXTAREA'||t.tagName==='INPUT') && (t.closest('#rightPanel')||t.id==='previewPartInstructions')) {
+                if(t.selectionStart !== t.selectionEnd) {
+                    this.activeFormatInput = t;
+                    const r = t.getBoundingClientRect();
+                    tool.style.left = r.left + 'px';
+                    tool.style.top = (r.top - 40) + 'px';
+                    tool.style.display = 'flex';
+                } else {
+                    tool.style.display = 'none';
+                }
+            } else if (!t.closest('#textFormatTooltip')) {
+                tool.style.display = 'none';
+            }
+        });
+    },
+    applyFormat: function(tag) {
+        const el = this.activeFormatInput;
+        if(!el) return;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const txt = el.value;
+        el.value = txt.slice(0, start) + `<${tag}>` + txt.slice(start, end) + `</${tag}>` + txt.slice(end);
+        el.dispatchEvent(new Event('input', {bubbles:true}));
+    },
+
+    // --- Files ---
+    handleLogoUpload: function(e) {
+        const f = e.target.files[0];
+        if(f) {
+            const r = new FileReader();
+            r.onload = ev => {
+                ExamState.logoData = ev.target.result;
+                UI.elements.previewLogo.src = ev.target.result;
                 UI.elements.previewLogo.style.display = 'block';
             };
-            reader.readAsDataURL(file);
+            r.readAsDataURL(f);
+        }
+    },
+    handleSolutionUpload: function(e) {
+        const f = e.target.files[0];
+        if(f) {
+            const r = new FileReader();
+            r.onload = ev => {
+                ExamState.solutionDataUrl = ev.target.result;
+                UI.showToast('פתרון נטען');
+            };
+            r.readAsDataURL(f);
         }
     },
 
-    handleSolutionUpload: function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                ExamState.solutionDataUrl = e.target.result;
-                UI.showToast('קובץ הפתרון נטען בהצלחה');
-            };
-            reader.readAsDataURL(file);
-        }
+    // --- Parts ---
+    addPart: function() {
+        const id = ExamState.getNextPartId();
+        ExamState.addPart({id, name: 'חלק חדש'});
+        UI.renderPartSelector();
+        UI.renderTabs();
+        UI.updateStats();
+        UI.elements.qPart.value = id;
+        App.onPartSelectChange();
+    },
+    removePart: function() {
+        if(ExamState.parts.length <= 1) return;
+        UI.showConfirm('מחיקה', 'למחוק חלק?', () => {
+            ExamState.removePart(UI.elements.qPart.value);
+            if(ExamState.parts.length > 0) ExamState.currentTab = ExamState.parts[0].id;
+            UI.renderPartSelector();
+            UI.renderTabs();
+            UI.updateStats();
+            App.onPartSelectChange();
+            UI.renderPreview();
+        });
     }
 };
 
-// === START APP ===
-window.onload = function() {
-    App.init();
-};
+window.onload = function() { App.init(); };
