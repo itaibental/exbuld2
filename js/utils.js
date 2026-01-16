@@ -2,22 +2,26 @@ const Utils = {
     // זיהוי אם הקישור הוא לקובץ וידאו ישיר
     isHTML5Video: function(url) {
         if(!url) return false;
-        // בדיקת סיומות נפוצות (mp4, webm, ogg, mov)
         return /\.(mp4|webm|ogg|mov)($|\?)/i.test(url);
     },
 
     getVideoEmbedUrl: function(url) {
         if (!url) return null;
+        
+        // Google Drive Link
         const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
         if (driveMatch && url.includes('drive.google.com')) {
             return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
         }
+        
+        // YouTube Link (Fixed for Error 153)
         const iframeMatch = url.match(/src=["'](.*?)["']/);
         const link = iframeMatch ? iframeMatch[1] : url;
         const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?"]*).*/;
         const ytMatch = link.match(ytRegExp);
         if (ytMatch && ytMatch[2].length === 11) {
-            return `https://www.youtube-nocookie.com/embed/${ytMatch[2]}?rel=0&modestbranding=1&showinfo=0`;
+            // שינוי ל-youtube.com רגיל למניעת שגיאות נגן
+            return `https://www.youtube.com/embed/${ytMatch[2]}?rel=0`;
         }
         return null;
     },
@@ -42,9 +46,9 @@ const Utils = {
     },
 
     setupResizers: function() {
+        // ... (המשך קוד ה-Resizers ללא שינוי)
         const resizerRight = document.getElementById('dragHandleRight');
         const rightCol = document.getElementById('rightPanel');
-        
         if (resizerRight && rightCol) {
             resizerRight.addEventListener('mousedown', (e) => {
                 e.preventDefault();
@@ -69,10 +73,8 @@ const Utils = {
                 document.addEventListener('mouseup', onUp);
             });
         }
-
         const resizerLeft = document.getElementById('dragHandleLeft');
         const leftCol = document.getElementById('leftPanel');
-        
         if (resizerLeft && leftCol) {
             resizerLeft.addEventListener('mousedown', (e) => {
                 e.preventDefault();
