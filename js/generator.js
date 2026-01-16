@@ -132,18 +132,25 @@ const Generator = {
                     if(q.embedCode) {
                         vid = `<div class="media-container embed-container" id="${vidId}">${q.embedCode}</div>`;
                     } 
-                    // Priority 2: HTML5 Video File
+                    // Priority 2: HTML5 Video File (Local or Remote MP4)
                     else if (Utils.isHTML5Video(q.videoUrl)) {
                         vid = `<div class="video-wrapper" id="${vidId}" style="padding-bottom:0; height:auto; background:black;">
-                            <video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;"></video>
+                            <video controls src="${q.videoUrl}" style="width:100%; border-radius:8px; display:block;" preload="metadata" playsinline></video>
                         </div>`;
                     }
-                    // Priority 3: Iframe Link
+                    // Priority 3: Iframe Link (YouTube/Drive) - ADDED ALLOW ATTRIBUTES
                     else if (embedSrc) {
-                        vid = `<div class="video-wrapper" id="${vidId}"><iframe src="${embedSrc}" frameborder="0" allowfullscreen></iframe></div>`;
+                        vid = `<div class="video-wrapper" id="${vidId}">
+                            <iframe 
+                                src="${embedSrc}" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                referrerpolicy="strict-origin-when-cross-origin" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>`;
                     }
 
-                    // Add Fullscreen Toggle Button if video exists
                     if(vid) {
                         vid += `<button type="button" class="btn-expand-video" onclick="toggleVideoFullscreen('${vidId}')">🔲 הגדל למסך מלא</button>`;
                     }
@@ -245,7 +252,6 @@ const Generator = {
         }
         .btn-expand-video:hover { background: #2c3e50; }
         
-        /* Close button for fullscreen mode */
         .btn-close-fs {
             position: absolute; top: 20px; right: 20px; background: #e74c3c; color: white;
             border: none; padding: 10px 20px; font-size: 1.2em; border-radius: 5px;
@@ -521,10 +527,22 @@ const Generator = {
         function enableGradingUI() {
             document.querySelector('.teacher-controls').style.display='block';
             document.querySelectorAll('.grading-area').forEach(e=>e.style.display='block');
+            
+            // Enable grading inputs
             document.querySelectorAll('.grade-input, .teacher-comment').forEach(e=>e.disabled=false);
+            
+            // Enable student answer editing
+            document.querySelectorAll('.student-ans').forEach(e => {
+                e.removeAttribute('readonly');
+                e.disabled = false;
+                e.style.borderColor = '#3498db'; // Optional visual cue
+            });
+
             document.querySelectorAll('.model-answer-secret').forEach(e=>e.style.display='block');
             document.querySelector('.student-submit-area').style.display='none';
             document.body.dataset.status = 'grading';
+            
+            // Show all sections
             document.querySelectorAll('.exam-section').forEach(e=>e.style.display='block');
             document.querySelector('.tabs').style.display='none';
 
