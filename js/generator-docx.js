@@ -1,10 +1,8 @@
 /**
  * DocxBuilder
- * אחראי על בניית תוכן קובץ ה-Word (בפורמט HTML מותאם ל-Word).
  */
 const DocxBuilder = {
     build: function(examTitle, instructions, parts, questions, studentName, logoData) {
-        // Basic HTML structure compatible with Word
         let content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head>
             <meta charset="utf-8">
@@ -18,25 +16,18 @@ const DocxBuilder = {
             </style>
         </head>
         <body>`;
-
-        // Logo
         if (logoData) {
             content += `<div style="text-align:center"><img src="${logoData}" alt="Logo"></div>`;
         }
-
-        // Title & Header
         content += `<h1 style="text-align:center;">${examTitle}</h1>`;
         if (instructions.general) {
             content += `<div style="background:#f0f0f0; padding:10px; margin-bottom:20px;"><strong>הנחיות:</strong><br>${instructions.general.replace(/\n/g, '<br>')}</div>`;
         }
-
-        // Iterate Parts
         parts.forEach(part => {
             content += `<h2>${part.name}</h2>`;
             if (instructions.parts[part.id]) {
                 content += `<p><em>${instructions.parts[part.id].replace(/\n/g, '<br>')}</em></p>`;
             }
-
             const partQuestions = questions.filter(q => q.part === part.id);
             if (partQuestions.length === 0) {
                 content += `<p>(אין שאלות בחלק זה)</p>`;
@@ -45,11 +36,9 @@ const DocxBuilder = {
                     content += `<div class="question-box">`;
                     content += `<p><strong>שאלה ${idx + 1}</strong> (${q.points} נקודות)</p>`;
                     content += `<p>${q.text.replace(/\n/g, '<br>')}</p>`;
-                    
                     if (q.imageUrl) {
                         content += `<img src="${q.imageUrl}" />`;
                     }
-
                     if (q.subQuestions && q.subQuestions.length > 0) {
                         q.subQuestions.forEach((sq, si) => {
                             const label = ExamState.subLabels[si] || (si + 1);
@@ -65,7 +54,6 @@ const DocxBuilder = {
                 });
             }
         });
-
         content += `</body></html>`;
         return content;
     }

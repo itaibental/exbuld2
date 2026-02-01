@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת מחולל מבחני בגרות</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+        <div class="modal-title" id="modalTitle">אישור פעולה</div>
+        <div class="modal-text" id="modalText">האם אתה בטוח?</div>
+        <div class="modal-actions">
+            <button class="modal-btn btn-danger" id="btnConfirmYes" style="background: var(--danger); color: white;">כן, מחק</button>
+            <button class="modal-btn btn-cancel" onclick="UI.closeModal()">ביטול</button>
+        </div>
+    </div>
+</div>
+<div id="textFormatTooltip">
+    <button onmousedown="App.applyFormat('b')" title="מודגש">B</button>
+    <div class="divider"></div>
+    <button onmousedown="App.applyFormat('u')" title="קו תחתון" style="text-decoration: underline;">U</button>
+</div>
+<header class="main-app-header">
+    <!-- Link updated to index.html -->
+    <div style="position:absolute; right:20px; top:15px;"><a href="index.html" style="color:white; text-decoration:none; font-size:1.2rem;">🏠 בית</a></div>
+    <h1>EXAMBUILDER 4.0</h1>
+</header>
+<div class="container">
+    <div class="col-panel col-right" id="rightPanel">
+        <div class="resizer resizer-right-col" id="dragHandleRight"></div>
+        <div class="scroll-content">
+            <h2>✏️ עריכת שאלות</h2>
+            <details class="editor-category" open>
+                <summary>הגדרות מערכת</summary>
+                <div class="form-group">
+                    <label>הגדרות בחינה</label>
+                    <div style="display:flex; gap:1vw; margin-bottom:1vh;">
+                        <div style="flex:1">
+                            <label for="examDurationInput" style="font-size: 0.8rem;">זמן (דקות):</label>
+                            <input type="number" id="examDurationInput" value="90" min="1">
+                        </div>
+                        <div style="flex:1">
+                            <label for="unlockCodeInput" style="font-size: 0.8rem;">קוד מורה:</label>
+                            <input type="text" id="unlockCodeInput" value="1234">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>הגדרות שליחה / העלאה</label>
+                    <input type="email" id="teacherEmailInput" placeholder="מייל המורה (לשליחת המבחן)" style="margin-bottom: 1vh;">
+                    <input type="text" id="driveFolderInput" placeholder="קישור לתיקיית Drive (להעלאה)">
+                    <small style="color:#bdc3c7; font-size:0.75rem;">התלמיד יקבל כפתורים לשליחה/העלאה בסיום המבחן.</small>
+                </div>
+                <div class="form-group">
+                    <label for="solutionFileInput" style="color: #f39c12;">ייבוא קובץ פתרון (HTML/Word)</label>
+                    <input type="file" id="solutionFileInput" accept=".html,.htm" onchange="App.handleSolutionUpload(event)">
+                    <small style="color:#bdc3c7; font-size:0.75rem;">קובץ זה יוצג למורה בלבד בזמן בדיקת המבחן.</small>
+                </div>
+            </details>
+            <details class="editor-category" open>
+                <summary>עריכת שאלות</summary>
+                <div class="form-group">
+                     <label>עיצוב כותרת</label>
+                     <input type="text" id="examTitleInput" placeholder="כותרת המבחן" oninput="App.updateExamTitle()" style="margin-bottom: 1vh;">
+                     <div style="display:flex; align-items:center; gap:1vw;">
+                         <label for="schoolLogoInput" style="margin:0; flex-shrink:0;">לוגו:</label>
+                         <input type="file" id="schoolLogoInput" accept="image/*" onchange="App.handleLogoUpload(event)" style="font-size:0.8rem;">
+                     </div>
+                </div>
+                <div class="form-group">
+                    <label for="examInstructions" style="color: #ecf0f1;">הנחיות כלליות</label>
+                    <textarea id="examInstructions" rows="3" placeholder="רשום כאן הנחיות כלליות..." oninput="App.updateInstructionsPreview()"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="qPart">ניהול חלקים</label>
+                    <div class="part-controls">
+                        <select id="qPart" onchange="App.onPartSelectChange()" style="flex-grow: 1;">
+                        </select>
+                        <button class="btn-part-action btn-add-part" onclick="App.addPart()" title="הוסף חלק חדש">+</button>
+                        <button class="btn-part-action btn-remove-part" onclick="App.removePart()" title="הסר חלק נוכחי">-</button>
+                    </div>
+                    <label for="partNameInput" style="margin-top: 2vh; font-size: 0.9em;">שם החלק:</label>
+                    <input type="text" id="partNameInput" oninput="App.updatePartName()" placeholder="למשל: פרק שירה">
+                    <div class="part-instructions-area">
+                        <label for="partInstructions">הנחיות ל<span id="partNameLabel" style="color:var(--accent); font-weight:700;">חלק ראשון</span>:</label>
+                        <textarea id="partInstructions" rows="2" placeholder="למשל: ענה על 2 מתוך 3 שאלות..." oninput="App.savePartInstructions()"></textarea>
+                    </div>
+                </div>
+                <div style="display:flex; gap:1vw;" class="form-group">
+                    <div style="flex:1">
+                        <label for="qPoints" style="color: #ecf0f1;">ניקוד</label>
+                        <input type="number" id="qPoints" value="10" min="1" max="100">
+                    </div>
+                    <div style="flex:3"></div>
+                </div>
+                <div class="form-group">
+                    <label for="qText" style="color: #ecf0f1;">תוכן השאלה</label>
+                    <textarea id="qText" rows="4" placeholder="הקלד את השאלה כאן..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label style="color: #ecf0f1;">סעיפים (אופציונלי)</label>
+                    <div id="subQuestionsList"></div>
+                    <button class="btn-add-sub" onclick="App.addSubQuestionField()">➕ הוסף סעיף</button>
+                </div>
+                <div class="form-group" id="mainModelAnswerContainer">
+                    <label for="qModelAnswer" style="color: #ecf0f1;">תשובה לדוגמא (מחוון למורה בלבד)</label>
+                    <textarea id="qModelAnswer" rows="2" placeholder="תשובה זו תהיה מוסתרת מהתלמיד ותוצג רק למורה בבדיקה." style="border-color: #f39c12; background: #fffdf5;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label style="color: #ecf0f1;">מדיה (אופציונלי)</label>
+                    <input type="text" id="qVideo" placeholder="קישור לוידאו (Drive/YouTube)" style="margin-bottom:1vh;">
+                    <div id="videoOptionsPanel" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; margin-bottom: 1vh; font-size: 0.85rem;">
+                        <label style="margin-bottom: 5px; color: #f39c12;">הגדרות נגן (YouTube):</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="vidOptControls" checked style="width: auto;"> הצג פקדים</label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="vidOptBranding" checked style="width: auto;"> הסתר לוגו</label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="vidOptRelated" style="width: auto;"> סרטונים קשורים</label>
+                        </div>
+                    </div>
+                    <input type="text" id="qImage" placeholder="קישור לתמונה (Drive/URL)">
+                </div>
+                <button class="btn-add" onclick="App.addQuestion()">➕ הוסף שאלה</button>
+                <div class="stats-box">
+                    <h3>סיכום מבחן</h3>
+                    <div id="statsContainer"></div>
+                    <div class="stat-row total-row"><span>סה"כ ניקוד:</span> <span id="totalPoints">0</span></div>
+                </div>
+            </details>
+        </div>
+    </div>
+    <div class="col-middle">
+        <div id="questionsList">
+            <div id="previewHeader">
+                <img id="previewLogo" src="" alt="School Logo" style="display:none;">
+                <h1 id="previewExamTitle">מבחן בגרות</h1>
+                <input type="text" id="studentNameInput" placeholder="שם התלמיד" oninput="App.updateFilenamePreview()">
+            </div>
+            <div id="previewInstructionsBox"></div>
+            <div class="tabs" id="previewTabs"></div>
+            <div class="current-part-instructions-box">
+                <textarea id="previewPartInstructions" placeholder="הקלד כאן הנחיות כלליות לפרק זה (לדוגמה: ענה על 2 שאלות)..." oninput="App.updatePartInstructionsFromPreview(this.value)"></textarea>
+            </div>
+            <div id="previewQuestionsContainer">
+                <div style="text-align: center; color: #bdc3c7; margin-top: 5vh;">
+                    <h3>עדיין אין שאלות בחלק זה</h3>
+                    <p>הוסף שאלות מהתפריט הימני</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-panel col-left" id="leftPanel">
+        <div class="resizer resizer-left-col" id="dragHandleLeft"></div>
+        <div class="scroll-content">
+            <div style="margin-top: 5vh; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3vh; margin-bottom: 3vh;">
+                <h3>💾 שמירה וטעינה</h3>
+                <p style="color: #bdc3c7; font-size: 0.85rem; margin-bottom: 2vh;">שמור את העבודה כקובץ כדי להמשיך לערוך אחר כך.</p>
+                <button class="btn-download" style="background: #2c3e50; border: 1px solid #34495e; margin-bottom: 10px;" onclick="App.saveProject()">שמור טיוטה (JSON)</button>
+                <button class="btn-download" style="background: #2c3e50; border: 1px solid #34495e;" onclick="document.getElementById('projectFileInput').click()">טען טיוטה מקובץ</button>
+                <input type="file" id="projectFileInput" accept=".json, .html" style="display: none;" onchange="App.handleProjectLoad(event)">
+            </div>
+            <div style="text-align: center;">
+                <h2>📤 סיום והפצה</h2>
+                <p style="color: #bdc3c7; margin-bottom: 4vh;">לאחר סיום עריכת המבחן, הורד את הקובץ ושלח אותו לתלמידים.</p>
+                <div class="file-info">שם הקובץ שיירד:<br><strong id="filenamePreview" style="color: var(--accent); font-size:1.1rem;">מבחן - תלמיד.html</strong></div>
+                <button class="btn-download" onclick="Generator.generateAndDownload()">הורד מבחן (HTML)</button>
+                <button class="btn-download" style="background: #2980b9; margin-top: 15px;" onclick="Generator.generateAndDownloadDocx()">הורד כ-DOCX (לפתרון)</button>
+                <hr style="border-color: #34495e; width: 80%; margin: 5vh auto;">
+                <div style="font-size: 0.9rem; text-align: right; padding: 0 2vw; color: #bdc3c7;">
+                    <strong>איך זה עובד?</strong>
+                    <ol style="padding-right: 2vw; line-height:1.6;">
+                        <li>הזן מייל ו/או תיקיית דרייב להגשה.</li>
+                        <li>הורד ושלח לתלמיד.</li>
+                        <li>התלמיד יענה, יוריד עותק, וישלח למייל/דרייב שלך בלחיצת כפתור.</li>
+                        <li>פתח, בדוק ותן ציון.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<footer class="main-footer">
+    נוצר ע"י איתי בן טל בשיתוף רני בן זאב. כל הזכויות שמורות ©️ <br>
+    <span style="font-size: 0.8em; opacity: 0.7;">עדכון אחרון: 12/01/2026 23:52</span>
+</footer>
+<script src="js/state.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/generator-html.js"></script>
+<script src="js/generator-docx.js"></script>
+<script src="js/generator.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
